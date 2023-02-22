@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import java.util.List;
 import java.util.Optional;
@@ -65,7 +66,7 @@ public class EmployeeController {
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<EmployeeDto> findEmployeeById(
             @ApiParam(value = "id of an employee", required = true)
-            @PathVariable @Positive(message = "a positive integer number is required")
+            @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long id) {
         log.info("Find an employee by id: {}", id);
         Optional<EmployeeDto> employee = employeeService.findById(id);
@@ -123,9 +124,9 @@ public class EmployeeController {
             log.warn("Employee for update with id {} is not found", id);
             return ResponseEntity.notFound().build();
         }
-        employeeService.update(employeeDto);
-        log.debug("Existing employee is updated: {}", employeeDto);
-        return new ResponseEntity<>(employeeDto, HttpStatus.CREATED);
+        EmployeeDto employeeDtoUpdated = employeeService.update(employeeDto);
+        log.debug("Existing employee is updated: {}", employeeDtoUpdated);
+        return new ResponseEntity<>(employeeDtoUpdated, HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{id}")
@@ -139,7 +140,7 @@ public class EmployeeController {
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<Void> deleteEmployeeById(
             @ApiParam(value = "id of an employee", required = true)
-            @PathVariable @Positive(message = "a positive integer number is required")
+            @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long id) {
         log.info("Delete an employee by id: {}", id);
         if (!employeeService.existsById(id)) {

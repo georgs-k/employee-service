@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 
 @ApiModel(value = "Model of office data ")
@@ -19,6 +19,7 @@ public class OfficeDto {
 
     @ApiModelProperty(value = "Unique id of an office")
     @Positive(message = "A positive integer number is required")
+    @NotNull(message = "Required")
     private Long id;
 
     @ApiModelProperty(value = "Name of an office")
@@ -31,6 +32,5 @@ public class OfficeDto {
     private String city;
 
     @ApiModelProperty(value = "Country of an office")
-    @NotBlank(message = "Required")
     private CountryDto countryDto;
 }

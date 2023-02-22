@@ -8,7 +8,9 @@ import com.emansy.employeeservice.model.EmployeeDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -16,7 +18,10 @@ import java.util.stream.Collectors;
 @Log4j2
 @RequiredArgsConstructor
 @Service
+@Transactional
 public class EmployeeServiceImpl implements EmployeeService {
+
+    private final EntityManager entityManager;
 
     private final EmployeeRepository employeeRepository;
 
@@ -41,14 +46,17 @@ public class EmployeeServiceImpl implements EmployeeService {
     public EmployeeDto save(EmployeeDto employeeDto) {
         employeeDto.setId(null);
         EmployeeEntity employeeEntitySaved = employeeRepository.save(employeeMapper.dtoToEntity(employeeDto));
+        entityManager.refresh(employeeEntitySaved);
         log.info("New employee is saved: {}", employeeEntitySaved);
         return employeeMapper.entityToDto(employeeEntitySaved);
     }
 
     @Override
-    public void update(EmployeeDto employeeDto) {
-        employeeRepository.save(employeeMapper.dtoToEntity(employeeDto));
-        log.info("Employee is updated: {}", employeeDto);
+    public EmployeeDto update(EmployeeDto employeeDto) {
+        EmployeeEntity employeeEntityUpdated = employeeRepository.save(employeeMapper.dtoToEntity(employeeDto));
+        entityManager.refresh(employeeEntityUpdated);
+        log.info("Employee is updated: {}", employeeEntityUpdated);
+        return employeeMapper.entityToDto(employeeEntityUpdated);
     }
 
     @Override

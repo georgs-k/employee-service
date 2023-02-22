@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 import java.util.List;
@@ -44,11 +44,11 @@ public class EmployeeDto {
     private String phone;
 
     @ApiModelProperty(value = "Job title of an employee")
-    @NotEmpty(message = "Required")
+    @NotNull(message = "Required")
     private JobTitleDto jobTitleDto;
 
     @ApiModelProperty(value = "Office of an employee")
-    @NotEmpty(message = "Required")
+    @NotNull(message = "Required")
     private OfficeDto officeDto;
 
     @ApiModelProperty(value = "Start time of an employee's working day")

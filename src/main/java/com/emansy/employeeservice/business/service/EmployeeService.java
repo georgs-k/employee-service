@@ -13,7 +13,7 @@ public interface EmployeeService {
 
     EmployeeDto save(EmployeeDto employeeDto);
 
-    void update(EmployeeDto employeeDto);
+    EmployeeDto update(EmployeeDto employeeDto);
 
     void deleteById(Long id);
 

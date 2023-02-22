@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 
 @ApiModel(value = "Model of country data ")
@@ -19,10 +18,8 @@ public class CountryDto {
 
     @ApiModelProperty(value = "Two letter code of a country")
     @Pattern(regexp = "^[A-Z]{2}$", message = "A valid country code is required, two uppercase letters")
-    @NotBlank(message = "Required")
     private String code;
 
     @ApiModelProperty(value = "Name of a country")
-    @NotBlank(message = "Required")
     private String name;
 }
