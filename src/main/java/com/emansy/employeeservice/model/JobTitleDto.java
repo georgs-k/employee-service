@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Positive;
 
 @ApiModel(value = "Model of employee's job title data ")
@@ -19,7 +18,6 @@ public class JobTitleDto {
 
     @ApiModelProperty(value = "Unique id of a job title")
     @Positive(message = "A positive integer number is required")
-    @NotEmpty(message = "Required")
     private Long id;
 
     @ApiModelProperty(value = "Name of a job title")

@@ -65,7 +65,7 @@ public class EmployeeController {
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<EmployeeDto> findEmployeeById(
             @ApiParam(value = "id of an employee", required = true)
-            @PathVariable @Positive(message = "a positive integer number required")
+            @PathVariable @Positive(message = "a positive integer number is required")
             Long id) {
         log.info("Find an employee by id: {}", id);
         Optional<EmployeeDto> employee = employeeService.findById(id);
@@ -139,7 +139,7 @@ public class EmployeeController {
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<Void> deleteEmployeeById(
             @ApiParam(value = "id of an employee", required = true)
-            @PathVariable @Positive(message = "a positive integer number required")
+            @PathVariable @Positive(message = "a positive integer number is required")
             Long id) {
         log.info("Delete an employee by id: {}", id);
         if (!employeeService.existsById(id)) {

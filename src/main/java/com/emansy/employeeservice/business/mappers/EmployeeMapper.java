@@ -26,12 +26,12 @@ public interface EmployeeMapper {
     EmployeeDto entityToDto(EmployeeEntity employeeEntity);
 
     @Named("eventIdsToEventAttendedEntities")
-    default List<EventAttendedEntity> dtoToEntity(List<Long> eventIds) {
+    default List<EventAttendedEntity> idsToEntities(List<Long> eventIds) {
         return new ArrayList<>();
     }
 
     @Named("eventAttendedEntitiesToEventIds")
-    default List<Long> entityToDto(List<EventAttendedEntity> eventAttendedEntities) {
+    default List<Long> entitiesToIds(List<EventAttendedEntity> eventAttendedEntities) {
         List<Long> eventIds = new ArrayList<>();
         if (isNotEmpty(eventAttendedEntities)) {
             eventAttendedEntities.forEach(eventAttendedEntity -> eventIds.add(eventAttendedEntity.getEventId()));

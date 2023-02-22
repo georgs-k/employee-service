@@ -23,5 +23,6 @@ public class CountryDto {
     private String code;
 
     @ApiModelProperty(value = "Name of a country")
+    @NotBlank(message = "Required")
     private String name;
 }
