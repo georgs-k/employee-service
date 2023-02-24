@@ -26,7 +26,7 @@ public interface EmployeeMapper {
     EmployeeDto entityToDto(EmployeeEntity employeeEntity);
 
     @Named("eventIdsToEventAttendedEntities")
-    default List<EventAttendedEntity> idsToEntities(List<Long> eventIds) {
+    default List<EventAttendedEntity> idsToEntities(List<Long> ignoredEventIds) {
         return new ArrayList<>();
     }
 
