@@ -30,7 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest
 public class EmployeeControllerTest {
 
-    public static final String URL = "/api/v1/employees";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final String URL = "/api/v1/employees";
 
     @Autowired
     private MockMvc mockMvc;
@@ -85,7 +87,7 @@ public class EmployeeControllerTest {
         when(service.save(employeeDto)).thenReturn(employeeDto);
         mockMvc.perform(MockMvcRequestBuilders
                         .post(URL)
-                        .content(asJsonString(employeeDto))
+                        .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -101,7 +103,7 @@ public class EmployeeControllerTest {
         employeeDto.setFirstName("");
         mockMvc.perform(MockMvcRequestBuilders
                         .post(URL)
-                        .content(asJsonString(employeeDto))
+                        .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
@@ -115,7 +117,7 @@ public class EmployeeControllerTest {
         when(service.update(employeeDto)).thenReturn(employeeDto);
         mockMvc.perform(MockMvcRequestBuilders
                         .put(URL)
-                        .content(asJsonString(employeeDto))
+                        .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -132,7 +134,7 @@ public class EmployeeControllerTest {
         employeeDto.setFirstName("");
         mockMvc.perform(MockMvcRequestBuilders
                         .put(URL)
-                        .content(asJsonString(employeeDto))
+                        .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
@@ -146,7 +148,7 @@ public class EmployeeControllerTest {
         when(service.existsById(anyLong())).thenReturn(false);
         mockMvc.perform(MockMvcRequestBuilders
                         .put(URL)
-                        .content(asJsonString(employeeDto))
+                        .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
@@ -185,9 +187,5 @@ public class EmployeeControllerTest {
         employeeDto.setWorkingEndTime("18:00:00");
         employeeDto.setEventIds(new ArrayList<>());
         return employeeDto;
-    }
-
-    public static String asJsonString(final Object obj) throws Exception {
-        return new ObjectMapper().writeValueAsString(obj);
     }
 }
