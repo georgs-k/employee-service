@@ -13,7 +13,7 @@ import springfox.documentation.spring.web.plugins.Docket;
 
 @Configuration
 @Import(BeanValidatorPluginsConfiguration.class)
-public class Config {
+public class SwaggerConfig {
 
     @Bean
     public Docket configuration(){
