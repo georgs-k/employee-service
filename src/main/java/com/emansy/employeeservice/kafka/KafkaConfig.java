@@ -17,4 +17,14 @@ public class KafkaConfig {
     public NewTopic invitedEmployeesSendTopic() {
         return TopicBuilder.name("invited_employees_send").build();
     }
+
+    @Bean
+    public NewTopic uninvitedEmployeesRequestTopic() {
+        return TopicBuilder.name("uninvited_employees_request").build();
+    }
+
+    @Bean
+    public NewTopic uninvitedEmployeesSendTopic() {
+        return TopicBuilder.name("uninvited_employees_send").build();
+    }
 }

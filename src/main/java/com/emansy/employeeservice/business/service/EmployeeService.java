@@ -20,4 +20,6 @@ public interface EmployeeService {
     boolean existsById(Long id);
 
     List<EmployeeDto> findInvitedEmployees(List<Long> eventIds);
+
+    List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds);
 }
