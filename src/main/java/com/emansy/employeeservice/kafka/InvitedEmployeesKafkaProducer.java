@@ -12,14 +12,14 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Service
-public class AllEmployeeKafkaProducer {
+public class InvitedEmployeesKafkaProducer {
 
     private final KafkaTemplate<String, List<EmployeeDto>> kafkaTemplate;
 
     public void send(List<EmployeeDto> employees) {
         Message<List<EmployeeDto>> message = MessageBuilder
                 .withPayload(employees)
-                .setHeader(KafkaHeaders.TOPIC, "all_employee_send")
+                .setHeader(KafkaHeaders.TOPIC, "invited_employees_send")
                 .build();
         kafkaTemplate.send(message);
     }

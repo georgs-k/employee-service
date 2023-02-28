@@ -10,25 +10,27 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.Table;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "event_attended")
-public class EventAttendedEntity {
+@Table(name = "event")
+public class EventIdEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "employee_id")
-    private EmployeeEntity employeeEntity;
-
-    @Column(name = "event_id")
-    private Long eventId;
+    @ManyToMany
+    @JoinTable(
+            name = "event_attended",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "employee_id"))
+    private Set<EmployeeEntity> employeeEntities;
 }

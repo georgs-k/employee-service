@@ -11,8 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -68,5 +70,11 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public boolean existsById(Long id) {
         return employeeRepository.existsById(id);
+    }
+
+    @Override
+    public List<EmployeeDto> findInvitedEmployees(List<Long> eventIds) {
+        Set<Long> employeeIds = new HashSet<>();
+        return null;
     }
 }

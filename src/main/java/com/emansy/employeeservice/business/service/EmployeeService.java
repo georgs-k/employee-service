@@ -18,4 +18,6 @@ public interface EmployeeService {
     void deleteById(Long id);
 
     boolean existsById(Long id);
+
+    List<EmployeeDto> findInvitedEmployees(List<Long> eventIds);
 }

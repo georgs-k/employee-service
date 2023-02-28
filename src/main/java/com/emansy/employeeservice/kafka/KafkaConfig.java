@@ -9,12 +9,12 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaConfig {
 
     @Bean
-    public NewTopic allEmployeeRequestTopic() {
-        return TopicBuilder.name("all_employee_request").build();
+    public NewTopic invitedEmployeesRequestTopic() {
+        return TopicBuilder.name("invited_employees_request").build();
     }
 
     @Bean
-    public NewTopic allEmployeeSendTopic() {
-        return TopicBuilder.name("all_employee_send").build();
+    public NewTopic invitedEmployeesSendTopic() {
+        return TopicBuilder.name("invited_employees_send").build();
     }
 }

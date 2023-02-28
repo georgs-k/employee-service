@@ -9,14 +9,14 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Service
-public class AllEmployeeKafkaConsumer {
+public class InvitedEmployeesKafkaConsumer {
 
     private final EmployeeService employeeService;
 
-    private final AllEmployeeKafkaProducer allEmployeeKafkaProducer;
+    private final InvitedEmployeesKafkaProducer invitedEmployeesKafkaProducer;
 
-    @KafkaListener(topics = "all_employee_request", groupId = "employeeGroup")
-    public void handleRequest(List<Long> ignoredList) {
-        allEmployeeKafkaProducer.send(employeeService.findAll());
+    @KafkaListener(topics = "invited_employees_request", groupId = "employee_group")
+    public void handleRequest(List<Long> eventIds) {
+        invitedEmployeesKafkaProducer.send(employeeService.findInvitedEmployees(eventIds));
     }
 }

@@ -13,9 +13,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -185,7 +185,7 @@ public class EmployeeControllerTest {
         employeeDto.setOfficeDto(new OfficeDto());
         employeeDto.setWorkingStartTime("09:00:00");
         employeeDto.setWorkingEndTime("18:00:00");
-        employeeDto.setEventIds(new ArrayList<>());
+        employeeDto.setEventIds(new HashSet<>());
         return employeeDto;
     }
 }
