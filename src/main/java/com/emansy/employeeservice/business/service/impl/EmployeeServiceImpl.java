@@ -7,12 +7,19 @@ import com.emansy.employeeservice.business.service.EmployeeService;
 import com.emansy.employeeservice.model.EmployeeDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -27,6 +34,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeMapper employeeMapper;
 
+    private final KafkaTemplate<String, List<Long>> kafkaTemplate;
+
     @Override
     public List<EmployeeDto> findAll() {
         List<EmployeeEntity> employeeEntities = employeeRepository.findAll();
@@ -39,6 +48,20 @@ public class EmployeeServiceImpl implements EmployeeService {
         Optional<EmployeeDto> employeeById = employeeRepository.findById(id)
                 .flatMap(employeeEntity -> Optional.ofNullable(employeeMapper.entityToDto(employeeEntity)));
         log.info("Employee with id {} is {}", id, employeeById);
+
+        // temporary, for manually testing kafka
+
+        List<Long> list = new ArrayList<>();
+        list.add(1L);
+        list.add(2L);
+        Message<List<Long>> message = MessageBuilder
+                .withPayload(list)
+                .setHeader(KafkaHeaders.TOPIC, "uninvited_employees_request")
+                .build();
+        kafkaTemplate.send(message);
+
+        // temporary, end
+
         return employeeById;
     }
 
@@ -72,14 +95,15 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public List<EmployeeDto> findInvitedEmployees(List<Long> eventIds) {
-        List<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdIn(eventIds);
+        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdIn(eventIds);
         log.info("Found {} employees invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
     @Override
     public List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds) {
-        List<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdNotIn(eventIds);
+        Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAll());
+        employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdIn(eventIds));
         log.info("Found {} employees not invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }

@@ -7,25 +7,28 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Log4j2
 @RequiredArgsConstructor
 @Service
-public class EmployeesKafkaConsumer {
+public class EmployeeKafkaConsumer {
 
     private final EmployeeService employeeService;
 
-    private final EmployeesKafkaProducer employeesKafkaProducer;
+    private final EmployeeKafkaProducer employeeKafkaProducer;
 
     @KafkaListener(topics = "invited_employees_request", groupId = "employee_group")
-    public void handleInvitedEmployeesRequest(List<Long> eventIds) {
+    public void handleInvitedEmployeesRequest(List<Integer> integerEventIds) {
+        List<Long> eventIds = integerEventIds.stream().map(Long::valueOf).collect(Collectors.toList());
         log.info("Request for employees invited to events with ids {} is received", eventIds);
-        employeesKafkaProducer.sendInvitedEmployees(employeeService.findInvitedEmployees(eventIds));
+        employeeKafkaProducer.sendInvitedEmployees(employeeService.findInvitedEmployees(eventIds));
     }
 
     @KafkaListener(topics = "uninvited_employees_request", groupId = "employee_group")
-    public void handleUninvitedEmployeesRequest(List<Long> eventIds) {
+    public void handleUninvitedEmployeesRequest(List<Integer> integerEventIds) {
+        List<Long> eventIds = integerEventIds.stream().map(Long::valueOf).collect(Collectors.toList());
         log.info("Request for employees not invited to events with ids {} is received", eventIds);
-        employeesKafkaProducer.sendUninvitedEmployees(employeeService.findUninvitedEmployees(eventIds));
+        employeeKafkaProducer.sendUninvitedEmployees(employeeService.findUninvitedEmployees(eventIds));
     }
 }

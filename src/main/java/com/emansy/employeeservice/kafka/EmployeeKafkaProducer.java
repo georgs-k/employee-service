@@ -14,7 +14,7 @@ import java.util.List;
 @Log4j2
 @RequiredArgsConstructor
 @Service
-public class EmployeesKafkaProducer {
+public class EmployeeKafkaProducer {
 
     private final KafkaTemplate<String, List<EmployeeDto>> kafkaTemplate;
 
