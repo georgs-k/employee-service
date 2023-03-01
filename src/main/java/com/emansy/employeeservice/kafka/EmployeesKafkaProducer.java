@@ -2,6 +2,7 @@ package com.emansy.employeeservice.kafka;
 
 import com.emansy.employeeservice.model.EmployeeDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Log4j2
 @RequiredArgsConstructor
 @Service
 public class EmployeesKafkaProducer {
@@ -22,6 +24,8 @@ public class EmployeesKafkaProducer {
                 .setHeader(KafkaHeaders.TOPIC, "invited_employees_send")
                 .build();
         kafkaTemplate.send(message);
+        log.info("List of {} invited employees is sent to kafka topic: {}",
+                employees.size(), message.getHeaders().get(KafkaHeaders.TOPIC));
     }
 
     public void sendUninvitedEmployees(List<EmployeeDto> employees) {
@@ -30,5 +34,7 @@ public class EmployeesKafkaProducer {
                 .setHeader(KafkaHeaders.TOPIC, "uninvited_employees_send")
                 .build();
         kafkaTemplate.send(message);
+        log.info("List of {} uninvited employees is sent to kafka topic: {}",
+                employees.size(), message.getHeaders().get(KafkaHeaders.TOPIC));
     }
 }

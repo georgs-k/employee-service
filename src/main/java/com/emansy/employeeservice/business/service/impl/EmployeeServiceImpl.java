@@ -30,7 +30,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public List<EmployeeDto> findAll() {
         List<EmployeeEntity> employeeEntities = employeeRepository.findAll();
-        log.info("Size of the list of all employees is {}", employeeEntities.size());
+        log.info("Number of all employees is {}", employeeEntities.size());
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
@@ -73,16 +73,14 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public List<EmployeeDto> findInvitedEmployees(List<Long> eventIds) {
         List<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdIn(eventIds);
-        log.info("Size of the list of all employees invited to events with ids {} is {}",
-                eventIds, employeeEntities.size());
+        log.info("Found {} employees invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
     @Override
     public List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds) {
         List<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdNotIn(eventIds);
-        log.info("Size of the list of all employees not invited to events with ids {} is {}",
-                eventIds, employeeEntities.size());
+        log.info("Found {} employees not invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 }
