@@ -56,7 +56,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         list.add(2L);
         Message<List<Long>> message = MessageBuilder
                 .withPayload(list)
-                .setHeader(KafkaHeaders.TOPIC, "uninvited_employees_request")
+                .setHeader(KafkaHeaders.TOPIC, "invited_employees_request")
                 .build();
         kafkaTemplate.send(message);
 
@@ -95,7 +95,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public List<EmployeeDto> findInvitedEmployees(List<Long> eventIds) {
-        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdIn(eventIds);
+        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdInOrderByLastName(eventIds);
         log.info("Found {} employees invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
@@ -103,7 +103,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds) {
         Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAllByOrderByLastName());
-        employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdIn(eventIds));
+        employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdInOrderByLastName(eventIds));
         log.info("Found {} employees not invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }

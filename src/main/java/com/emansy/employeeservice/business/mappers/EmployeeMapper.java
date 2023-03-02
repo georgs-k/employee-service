@@ -33,9 +33,7 @@ public interface EmployeeMapper {
     @Named("eventIdEntitiesToEventIds")
     default Set<Long> entitiesToIds(Set<EventIdEntity> eventIdEntities) {
         Set<Long> eventIds = new HashSet<>();
-        if (isNotEmpty(eventIdEntities)) {
-            eventIdEntities.forEach(eventIdEntity -> eventIds.add(eventIdEntity.getId()));
-        }
+        if (isNotEmpty(eventIdEntities)) eventIdEntities.forEach(eventIdEntity -> eventIds.add(eventIdEntity.getId()));
         return eventIds;
     }
 }
