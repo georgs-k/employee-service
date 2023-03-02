@@ -95,7 +95,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public List<EmployeeDto> findInvitedEmployees(List<Long> eventIds) {
-        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdInOrderByLastName(eventIds);
+        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdIn(eventIds);
         log.info("Found {} employees invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
@@ -103,7 +103,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds) {
         Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAllByOrderByLastName());
-        employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdInOrderByLastName(eventIds));
+        employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdIn(eventIds));
         log.info("Found {} employees not invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }

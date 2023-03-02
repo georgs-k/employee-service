@@ -15,26 +15,26 @@ import java.util.List;
 @RequiredArgsConstructor
 @Service
 public class EmployeeKafkaProducer {
-
-    private final KafkaTemplate<String, List<EmployeeDto>> kafkaTemplate;
-
-    public void sendInvitedEmployees(List<EmployeeDto> employees) {
-        Message<List<EmployeeDto>> message = MessageBuilder
-                .withPayload(employees)
-                .setHeader(KafkaHeaders.TOPIC, "invited_employees_send")
-                .build();
-        kafkaTemplate.send(message);
-        log.info("List of {} invited employees is sent to kafka topic: {}",
-                employees.size(), message.getHeaders().get(KafkaHeaders.TOPIC));
-    }
-
-    public void sendUninvitedEmployees(List<EmployeeDto> employees) {
-        Message<List<EmployeeDto>> message = MessageBuilder
-                .withPayload(employees)
-                .setHeader(KafkaHeaders.TOPIC, "uninvited_employees_send")
-                .build();
-        kafkaTemplate.send(message);
-        log.info("List of {} uninvited employees is sent to kafka topic: {}",
-                employees.size(), message.getHeaders().get(KafkaHeaders.TOPIC));
-    }
+//
+//    private final KafkaTemplate<String, List<EmployeeDto>> kafkaTemplate;
+//
+//    public void sendInvitedEmployees(List<EmployeeDto> employees) {
+//        Message<List<EmployeeDto>> message = MessageBuilder
+//                .withPayload(employees)
+//                .setHeader(KafkaHeaders.TOPIC, "invited_employees_response")
+//                .build();
+//        kafkaTemplate.send(message);
+//        log.info("List of {} invited employees is sent to kafka topic: {}",
+//                employees.size(), message.getHeaders().get(KafkaHeaders.TOPIC));
+//    }
+//
+//    public void sendUninvitedEmployees(List<EmployeeDto> employees) {
+//        Message<List<EmployeeDto>> message = MessageBuilder
+//                .withPayload(employees)
+//                .setHeader(KafkaHeaders.TOPIC, "uninvited_employees_response")
+//                .build();
+//        kafkaTemplate.send(message);
+//        log.info("List of {} uninvited employees is sent to kafka topic: {}",
+//                employees.size(), message.getHeaders().get(KafkaHeaders.TOPIC));
+//    }
 }
