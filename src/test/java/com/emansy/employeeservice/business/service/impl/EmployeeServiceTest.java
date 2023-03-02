@@ -62,18 +62,18 @@ public class EmployeeServiceTest {
 
     @Test
     void findAllTestPositive() {
-        when(repository.findAll()).thenReturn(employeeEntities);
+        when(repository.findAllByOrderByLastName()).thenReturn(employeeEntities);
         when(mapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
-        assertEquals(2, service.findAll().size());
-        verify(repository, times(1)).findAll();
+        assertEquals(2, service.findAllEmployees().size());
+        verify(repository, times(1)).findAllByOrderByLastName();
         verify(mapper, times(2)).entityToDto(employeeEntity);
     }
 
     @Test
     void findAllTestNegative() {
-        when(repository.findAll()).thenReturn(Collections.emptyList());
-        assertTrue(service.findAll().isEmpty());
-        verify(repository, times(1)).findAll();
+        when(repository.findAllByOrderByLastName()).thenReturn(Collections.emptyList());
+        assertTrue(service.findAllEmployees().isEmpty());
+        verify(repository, times(1)).findAllByOrderByLastName();
     }
 
     @Test

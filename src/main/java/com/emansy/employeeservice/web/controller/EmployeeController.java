@@ -49,7 +49,7 @@ public class EmployeeController {
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<List<EmployeeDto>> findAllEmployees() {
         log.info("Retrieve list of all employees");
-        List<EmployeeDto> employees = employeeService.findAll();
+        List<EmployeeDto> employees = employeeService.findAllEmployees();
         log.debug("Size of employee list is {}", employees.size());
         return ResponseEntity.ok(employees);
     }

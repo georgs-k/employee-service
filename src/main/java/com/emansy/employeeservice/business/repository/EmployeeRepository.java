@@ -8,5 +8,7 @@ import java.util.Set;
 
 public interface EmployeeRepository extends JpaRepository<EmployeeEntity, Long> {
 
+    List<EmployeeEntity> findAllByOrderByLastName();
+
     Set<EmployeeEntity> findAllByEventIdEntitiesIdIn(List<Long> eventIds);
 }

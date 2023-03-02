@@ -37,8 +37,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final KafkaTemplate<String, List<Long>> kafkaTemplate;
 
     @Override
-    public List<EmployeeDto> findAll() {
-        List<EmployeeEntity> employeeEntities = employeeRepository.findAll();
+    public List<EmployeeDto> findAllEmployees() {
+        List<EmployeeEntity> employeeEntities = employeeRepository.findAllByOrderByLastName();
         log.info("Number of all employees is {}", employeeEntities.size());
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
@@ -102,7 +102,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds) {
-        Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAll());
+        Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAllByOrderByLastName());
         employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdIn(eventIds));
         log.info("Found {} employees not invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());

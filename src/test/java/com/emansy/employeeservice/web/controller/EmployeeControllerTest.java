@@ -42,24 +42,24 @@ public class EmployeeControllerTest {
 
     @Test
     void findAllEmployeesTestPositive() throws Exception {
-        when(service.findAll()).thenReturn(Arrays.asList(createEmployeeDto(), createEmployeeDto()));
+        when(service.findAllEmployees()).thenReturn(Arrays.asList(createEmployeeDto(), createEmployeeDto()));
         mockMvc.perform(MockMvcRequestBuilders.get(URL))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].id").value(1L))
                 .andExpect(jsonPath("$[0].firstName").value("First name"))
                 .andExpect(status().isOk());
-        verify(service, times(1)).findAll();
+        verify(service, times(1)).findAllEmployees();
     }
 
     @Test
     void findAllEmployeesTestNegative() throws Exception {
-        when(service.findAll()).thenReturn(Collections.emptyList());
+        when(service.findAllEmployees()).thenReturn(Collections.emptyList());
         mockMvc.perform(MockMvcRequestBuilders.get(URL))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(0)))
                 .andExpect(status().isOk());
-        verify(service, times(1)).findAll();
+        verify(service, times(1)).findAllEmployees();
     }
 
     @Test

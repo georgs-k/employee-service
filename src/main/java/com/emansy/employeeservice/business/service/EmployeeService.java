@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface EmployeeService {
 
-    List<EmployeeDto> findAll();
+    List<EmployeeDto> findAllEmployees();
 
     Optional<EmployeeDto> findById(Long id);
 
