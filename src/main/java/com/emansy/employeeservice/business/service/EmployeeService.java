@@ -22,4 +22,6 @@ public interface EmployeeService {
     List<EmployeeDto> findInvitedEmployees(List<Long> eventIds);
 
     List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds);
+
+    void unattend(List<Long> attendeeIds, Long eventId);
 }

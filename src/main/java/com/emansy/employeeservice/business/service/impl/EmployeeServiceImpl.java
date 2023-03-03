@@ -2,7 +2,9 @@ package com.emansy.employeeservice.business.service.impl;
 
 import com.emansy.employeeservice.business.mappers.EmployeeMapper;
 import com.emansy.employeeservice.business.repository.EmployeeRepository;
+import com.emansy.employeeservice.business.repository.EventIdRepository;
 import com.emansy.employeeservice.business.repository.model.EmployeeEntity;
+import com.emansy.employeeservice.business.repository.model.EventIdEntity;
 import com.emansy.employeeservice.business.service.EmployeeService;
 import com.emansy.employeeservice.model.EmployeeDto;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -30,9 +32,11 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EntityManager entityManager;
 
+    private final EmployeeMapper employeeMapper;
+
     private final EmployeeRepository employeeRepository;
 
-    private final EmployeeMapper employeeMapper;
+    private final EventIdRepository eventIdRepository;
 
     private final KafkaTemplate<String, List<Long>> kafkaTemplate;
 
@@ -51,9 +55,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // temporary, for manually testing kafka
 
-        List<Long> list = new ArrayList<>();
-        list.add(1L);
-        list.add(2L);
+        List<Long> list = Arrays.asList(1L, 2L);
         Message<List<Long>> message = MessageBuilder
                 .withPayload(list)
                 .setHeader(KafkaHeaders.TOPIC, "invited_employees_request")
@@ -106,5 +108,27 @@ public class EmployeeServiceImpl implements EmployeeService {
         employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdIn(eventIds));
         log.info("Found {} employees not invited to the events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public void unattend(List<Long> attendeeIds, Long eventId) {
+        Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventId);
+        if (!eventIdEntity.isPresent()) {
+            log.warn("Event with id {} not found", eventId);
+            return;
+        }
+        Set<EmployeeEntity> employeesAttending = eventIdEntity.get().getEmployeeEntities();
+        Set<EmployeeEntity> employeesUnattending;
+        if (attendeeIds.isEmpty()) {
+            eventIdRepository.deleteById(eventId);
+            employeesUnattending = employeesAttending;
+        } else {
+            employeesUnattending = employeeRepository.findAllByIdIn(attendeeIds);
+            employeesAttending.removeAll(employeesUnattending);
+        }
+        log.info("{} employees unattend from the event with id {}", employeesUnattending.size(), eventId);
+
+//        employeesUnattending.TO DO - MESSAGE TO NOTIFICATION SERVICE
+
     }
 }

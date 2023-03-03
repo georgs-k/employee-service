@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -149,6 +150,28 @@ public class EmployeeController {
         }
         employeeService.deleteById(id);
         log.debug("Employee with id {} is deleted", id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/{eventId}")
+    @ApiOperation(value = "Cancels an employee's attendance of an event (if exists)",
+            notes = "Provide ids for an employee and for an event")
+    @ApiResponses(value = {
+            @ApiResponse(code = 204, message = "The employee's attendance is cancelled (if existed)"),
+            @ApiResponse(code = 401, message = "The request requires user authentication"),
+            @ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+            @ApiResponse(code = 404, message = "The server has not found anything matching the Request-URI"),
+            @ApiResponse(code = 500, message = "Server error")})
+    public ResponseEntity<Void> unattend(
+            @ApiParam(value = "id of an employee", required = true)
+            @PathVariable @NotNull @Positive(message = "a positive integer number is required")
+            Long id,
+            @ApiParam(value = "id of an event", required = true)
+            @PathVariable @NotNull @Positive(message = "a positive integer number is required")
+            Long eventId) {
+        log.info("Cancel employee's with id {} attendance of event with id {} (if exists)", id, eventId);
+        employeeService.unattend(Arrays.asList(id), eventId);
+        log.debug("Employee's with id {} attendance of event with id {} is cancelled (if existed)", id, eventId);
         return ResponseEntity.noContent().build();
     }
 }
