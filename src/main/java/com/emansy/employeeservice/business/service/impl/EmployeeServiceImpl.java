@@ -6,6 +6,7 @@ import com.emansy.employeeservice.business.repository.EventIdRepository;
 import com.emansy.employeeservice.business.repository.model.EmployeeEntity;
 import com.emansy.employeeservice.business.repository.model.EventIdEntity;
 import com.emansy.employeeservice.business.service.EmployeeService;
+import com.emansy.employeeservice.model.AttendeeIdsDto;
 import com.emansy.employeeservice.model.EmployeeDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -38,7 +39,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EventIdRepository eventIdRepository;
 
-    private final KafkaTemplate<String, List<Long>> kafkaTemplate;
+    private final KafkaTemplate<String, AttendeeIdsDto> kafkaTemplate;
 
     @Override
     public List<EmployeeDto> findAllEmployees() {
@@ -55,10 +56,10 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // temporary, for manually testing kafka
 
-        List<Long> list = Arrays.asList(1L, 2L);
-        Message<List<Long>> message = MessageBuilder
-                .withPayload(list)
-                .setHeader(KafkaHeaders.TOPIC, "invited_employees_request")
+        AttendeeIdsDto attendeeIdsDto = new AttendeeIdsDto(Arrays.asList(3L, 4L), 2L);
+        Message<AttendeeIdsDto> message = MessageBuilder
+                .withPayload(attendeeIdsDto)
+                .setHeader(KafkaHeaders.TOPIC, "unattend_request")
                 .build();
         kafkaTemplate.send(message);
 

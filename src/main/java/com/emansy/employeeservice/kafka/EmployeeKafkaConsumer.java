@@ -37,8 +37,13 @@ public class EmployeeKafkaConsumer {
 
     @KafkaListener(topics = "unattend_request", groupId = "employee_group")
     public void handleUnattendRequest(AttendeeIdsDto attendeeIdsDto) {
-        log.info("Request for cancelling employees' with ids {} attendances of event with id {} is received",
-                attendeeIdsDto.getAttendeeIds(), attendeeIdsDto.getEventId());
-        employeeService.unattend(attendeeIdsDto.getAttendeeIds(), attendeeIdsDto.getEventId());
+        List<Long> attendeeIds = attendeeIdsDto.getAttendeeIds();
+        Long eventId = attendeeIdsDto.getEventId();
+        if (attendeeIds.isEmpty())
+            log.info("Request for cancelling all employees' attendance of event with id {} is received", eventId);
+        else
+            log.info("Request for cancelling employees' with ids {} attendance of event with id {} is received",
+                    attendeeIds, eventId);
+        employeeService.unattend(attendeeIds, eventId);
     }
 }
