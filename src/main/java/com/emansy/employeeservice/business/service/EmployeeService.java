@@ -4,10 +4,11 @@ import com.emansy.employeeservice.model.EmployeeDto;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface EmployeeService {
 
-    List<EmployeeDto> findAllEmployees();
+    List<EmployeeDto> findAll();
 
     Optional<EmployeeDto> findById(Long id);
 
@@ -19,9 +20,9 @@ public interface EmployeeService {
 
     boolean existsById(Long id);
 
-    List<EmployeeDto> findAttendingEmployees(List<Long> eventIds);
+    Set<EmployeeDto> findAttendingEmployees(Set<Long> eventIds);
 
-    List<EmployeeDto> findNonAttendingEmployees(List<Long> eventIds);
+    Set<EmployeeDto> findNonAttendingEmployees(Set<Long> eventIds);
 
-    void unattend(List<Long> attendeeIds, Long eventId);
+    void unattend(Set<Long> attendeeIds, Long eventId);
 }

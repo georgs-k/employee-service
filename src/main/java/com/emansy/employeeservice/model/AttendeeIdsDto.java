@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -13,7 +13,7 @@ import java.util.List;
 @Component
 public class AttendeeIdsDto {
 
-    private List<Long> attendeeIds;
+    private Set<Long> attendeeIds;
 
     private Long eventId;
 }

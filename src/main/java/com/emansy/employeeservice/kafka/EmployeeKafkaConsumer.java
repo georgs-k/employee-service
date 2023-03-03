@@ -9,7 +9,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -21,23 +21,23 @@ public class EmployeeKafkaConsumer {
 
     @KafkaListener(topics = "attending_employees_request", groupId = "employee_group")
     @SendTo("attending_employees_response")
-    public List<EmployeeDto> handleAttendingEmployeesRequest(List<Integer> integerEventIds) {
-        List<Long> eventIds = integerEventIds.stream().map(Long::valueOf).collect(Collectors.toList());
+    public Set<EmployeeDto> handleAttendingEmployeesRequest(Set<Integer> integerEventIds) {
+        Set<Long> eventIds = integerEventIds.stream().map(Long::valueOf).collect(Collectors.toSet());
         log.info("Request for employees attending events with ids {} is received", eventIds);
         return employeeService.findAttendingEmployees(eventIds);
     }
 
     @KafkaListener(topics = "non_attending_employees_request", groupId = "employee_group")
     @SendTo("non_attending_employees_response")
-    public List<EmployeeDto> handleNonAttendingEmployeesRequest(List<Integer> integerEventIds) {
-        List<Long> eventIds = integerEventIds.stream().map(Long::valueOf).collect(Collectors.toList());
+    public Set<EmployeeDto> handleNonAttendingEmployeesRequest(Set<Integer> integerEventIds) {
+        Set<Long> eventIds = integerEventIds.stream().map(Long::valueOf).collect(Collectors.toSet());
         log.info("Request for employees not attending events with ids {} is received", eventIds);
         return employeeService.findNonAttendingEmployees(eventIds);
     }
 
     @KafkaListener(topics = "unattend_request", groupId = "employee_group")
     public void handleUnattendRequest(AttendeeIdsDto attendeeIdsDto) {
-        List<Long> attendeeIds = attendeeIdsDto.getAttendeeIds();
+        Set<Long> attendeeIds = attendeeIdsDto.getAttendeeIds();
         Long eventId = attendeeIdsDto.getEventId();
         if (attendeeIds.isEmpty())
             log.info("Request for cancelling all employees' attendance of event with id {} is received", eventId);

@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -42,8 +41,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final KafkaTemplate<String, AttendeeIdsDto> kafkaTemplate;
 
     @Override
-    public List<EmployeeDto> findAllEmployees() {
-        List<EmployeeEntity> employeeEntities = employeeRepository.findAllByOrderByLastName();
+    public List<EmployeeDto> findAll() {
+        List<EmployeeEntity> employeeEntities = employeeRepository.findAll();
         log.info("Number of all employees is {}", employeeEntities.size());
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
@@ -56,7 +55,10 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // temporary, for manually testing kafka
 
-        AttendeeIdsDto attendeeIdsDto = new AttendeeIdsDto(Arrays.asList(3L, 4L), 2L);
+        Set<Long> set = new HashSet<>();
+        set.add(3L);
+        set.add(4L);
+        AttendeeIdsDto attendeeIdsDto = new AttendeeIdsDto(set, 2L);
         Message<AttendeeIdsDto> message = MessageBuilder
                 .withPayload(attendeeIdsDto)
                 .setHeader(KafkaHeaders.TOPIC, "unattend_request")
@@ -97,22 +99,22 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public List<EmployeeDto> findAttendingEmployees(List<Long> eventIds) {
+    public Set<EmployeeDto> findAttendingEmployees(Set<Long> eventIds) {
         Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdIn(eventIds);
         log.info("Found {} employees attending events with ids {}", employeeEntities.size(), eventIds);
-        return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
+        return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet());
     }
 
     @Override
-    public List<EmployeeDto> findNonAttendingEmployees(List<Long> eventIds) {
-        Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAllByOrderByLastName());
+    public Set<EmployeeDto> findNonAttendingEmployees(Set<Long> eventIds) {
+        Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAll());
         employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdIn(eventIds));
         log.info("Found {} employees not attending events with ids {}", employeeEntities.size(), eventIds);
-        return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
+        return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet());
     }
 
     @Override
-    public void unattend(List<Long> attendeeIds, Long eventId) {
+    public void unattend(Set<Long> attendeeIds, Long eventId) {
         Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventId);
         if (!eventIdEntity.isPresent()) {
             log.warn("Event with id {} is not found", eventId);

@@ -25,9 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Api(tags = "Employee Controller")
 @Log4j2
@@ -50,7 +51,7 @@ public class EmployeeController {
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<List<EmployeeDto>> findAllEmployees() {
         log.info("Retrieve list of all employees");
-        List<EmployeeDto> employees = employeeService.findAllEmployees();
+        List<EmployeeDto> employees = employeeService.findAll();
         log.debug("Size of employee list is {}", employees.size());
         return ResponseEntity.ok(employees);
     }
@@ -170,7 +171,9 @@ public class EmployeeController {
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long eventId) {
         log.info("Cancel employee's with id {} attendance of event with id {} (if exists)", id, eventId);
-        employeeService.unattend(Arrays.asList(id), eventId);
+        Set<Long> idWrappedInSet = new HashSet<>();
+        idWrappedInSet.add(id);
+        employeeService.unattend(idWrappedInSet, eventId);
         log.debug("Employee's with id {} attendance of event with id {} is cancelled (if existed)", id, eventId);
         return ResponseEntity.noContent().build();
     }
