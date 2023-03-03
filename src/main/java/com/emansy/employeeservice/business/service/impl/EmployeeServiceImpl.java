@@ -96,17 +96,17 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public List<EmployeeDto> findInvitedEmployees(List<Long> eventIds) {
+    public List<EmployeeDto> findAttendingEmployees(List<Long> eventIds) {
         Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByEventIdEntitiesIdIn(eventIds);
-        log.info("Found {} employees invited to the events with ids {}", employeeEntities.size(), eventIds);
+        log.info("Found {} employees attending events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
     @Override
-    public List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds) {
+    public List<EmployeeDto> findNonAttendingEmployees(List<Long> eventIds) {
         Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAllByOrderByLastName());
         employeeEntities.removeAll(employeeRepository.findAllByEventIdEntitiesIdIn(eventIds));
-        log.info("Found {} employees not invited to the events with ids {}", employeeEntities.size(), eventIds);
+        log.info("Found {} employees not attending events with ids {}", employeeEntities.size(), eventIds);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
@@ -114,7 +114,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public void unattend(List<Long> attendeeIds, Long eventId) {
         Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventId);
         if (!eventIdEntity.isPresent()) {
-            log.warn("Event with id {} not found", eventId);
+            log.warn("Event with id {} is not found", eventId);
             return;
         }
         Set<EmployeeEntity> employeesAttending = eventIdEntity.get().getEmployeeEntities();
@@ -126,9 +126,10 @@ public class EmployeeServiceImpl implements EmployeeService {
             employeesUnattending = employeeRepository.findAllByIdIn(attendeeIds);
             employeesAttending.removeAll(employeesUnattending);
         }
-        log.info("{} employees unattend from the event with id {}", employeesUnattending.size(), eventId);
+        log.info("{} employees' attendance of the event with id {} is cancelled",
+                employeesUnattending.size(), eventId);
 
-//        employeesUnattending.TO DO - MESSAGE TO NOTIFICATION SERVICE
+//        TO DO: PRODUCE MESSAGE TO NOTIFICATION SERVICE
 
     }
 }

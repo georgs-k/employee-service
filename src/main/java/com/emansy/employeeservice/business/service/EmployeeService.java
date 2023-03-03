@@ -19,9 +19,9 @@ public interface EmployeeService {
 
     boolean existsById(Long id);
 
-    List<EmployeeDto> findInvitedEmployees(List<Long> eventIds);
+    List<EmployeeDto> findAttendingEmployees(List<Long> eventIds);
 
-    List<EmployeeDto> findUninvitedEmployees(List<Long> eventIds);
+    List<EmployeeDto> findNonAttendingEmployees(List<Long> eventIds);
 
     void unattend(List<Long> attendeeIds, Long eventId);
 }
