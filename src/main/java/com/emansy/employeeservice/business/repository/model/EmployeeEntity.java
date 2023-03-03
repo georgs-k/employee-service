@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -60,12 +59,7 @@ public class EmployeeEntity {
     @Column(name = "working_end_time")
     private LocalTime workingEndTime;
 
-    @ManyToMany(cascade = {
-            CascadeType.DETACH,
-            CascadeType.MERGE,
-            CascadeType.PERSIST,
-            CascadeType.REFRESH
-    })
+    @ManyToMany
     @JoinTable(
             name = "event_attended",
             joinColumns = @JoinColumn(name = "employee_id"),
