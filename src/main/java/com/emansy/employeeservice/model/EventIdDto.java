@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 @AllArgsConstructor
 @Component
-public class EventDto {
+public class EventIdDto {
 
     private Long id;
 }

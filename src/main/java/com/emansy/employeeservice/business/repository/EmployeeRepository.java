@@ -10,6 +10,4 @@ import java.util.Set;
 public interface EmployeeRepository extends JpaRepository<EmployeeEntity, Long> {
 
     Set<EmployeeEntity> findAllByIdIn(Set<Long> employeeIds);
-
-    Set<EmployeeEntity> findAllByEventIdEntitiesIdIn(Set<Long> eventIds);
 }

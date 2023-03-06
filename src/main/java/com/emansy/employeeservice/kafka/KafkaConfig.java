@@ -32,4 +32,9 @@ public class KafkaConfig {
     public NewTopic unattendRequestTopic() {
         return TopicBuilder.name("unattend_request").build();
     }
+
+    @Bean
+    public NewTopic unattendNotificationRequestTopic() {
+        return TopicBuilder.name("unattend_notification_request").build();
+    }
 }

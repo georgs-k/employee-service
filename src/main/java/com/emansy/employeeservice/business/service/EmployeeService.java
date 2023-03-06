@@ -1,5 +1,7 @@
 package com.emansy.employeeservice.business.service;
 
+import com.emansy.employeeservice.model.AttendeeIdsDto;
+import com.emansy.employeeservice.model.AttendeesDto;
 import com.emansy.employeeservice.model.EmployeeDto;
 
 import java.util.List;
@@ -20,9 +22,11 @@ public interface EmployeeService {
 
     boolean existsById(Long id);
 
-    Set<EmployeeDto> findAttendingEmployees(Set<Long> eventIds);
+    Set<EmployeeDto> findAttendingEmployees(Long eventId);
 
-    Set<EmployeeDto> findNonAttendingEmployees(Set<Long> eventIds);
+    Set<EmployeeDto> findNonAttendingEmployees(Long eventId);
 
-    void unattend(Set<Long> attendeeIds, Long eventId);
+    AttendeesDto unattendEvent(AttendeeIdsDto attendeeIdsDto);
+
+    AttendeesDto unattendAndDeleteEvent(AttendeeIdsDto attendeeIdsDto);
 }

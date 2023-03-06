@@ -13,7 +13,7 @@ import java.util.Set;
 @Component
 public class AttendeeIdsDto {
 
-    private Set<Long> attendeeIds;
+    private Set<Long> employeeIds;
 
-    private Long eventId;
+    private EventDto eventDto;
 }

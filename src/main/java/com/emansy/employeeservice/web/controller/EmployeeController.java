@@ -1,7 +1,9 @@
 package com.emansy.employeeservice.web.controller;
 
 import com.emansy.employeeservice.business.service.EmployeeService;
+import com.emansy.employeeservice.model.AttendeeIdsDto;
 import com.emansy.employeeservice.model.EmployeeDto;
+import com.emansy.employeeservice.model.EventDto;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -28,7 +30,6 @@ import javax.validation.constraints.Positive;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Api(tags = "Employee Controller")
 @Log4j2
@@ -171,9 +172,10 @@ public class EmployeeController {
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long eventId) {
         log.info("Cancel employee's with id {} attendance of event with id {} (if exists)", id, eventId);
-        Set<Long> idWrappedInSet = new HashSet<>();
-        idWrappedInSet.add(id);
-        employeeService.unattend(idWrappedInSet, eventId);
+        AttendeeIdsDto attendeeIdsDto = new AttendeeIdsDto(new HashSet<>(), new EventDto());
+        attendeeIdsDto.getEmployeeIds().add(id);
+        attendeeIdsDto.getEventDto().setId(eventId);
+        employeeService.unattendEvent(attendeeIdsDto);
         log.debug("Employee's with id {} attendance of event with id {} is cancelled (if existed)", id, eventId);
         return ResponseEntity.noContent().build();
     }

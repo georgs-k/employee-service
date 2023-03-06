@@ -5,11 +5,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Component
-public class EventDto {
+public class AttendeesDto {
 
-    private Long id;
+    private Set<EmployeeDto> employeeDtos;
+
+    private EventDto eventDto;
 }
