@@ -6,8 +6,8 @@ import com.emansy.employeeservice.business.repository.EventIdRepository;
 import com.emansy.employeeservice.business.repository.model.EmployeeEntity;
 import com.emansy.employeeservice.business.repository.model.EventIdEntity;
 import com.emansy.employeeservice.business.service.EmployeeService;
+import com.emansy.employeeservice.kafka.KafkaProducer;
 import com.emansy.employeeservice.model.AttendeeIdsDto;
-import com.emansy.employeeservice.model.AttendeesDto;
 import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EventIdRepository eventIdRepository;
 
-    private final KafkaTemplate<String, AttendeeIdsDto> kafkaTemplate;
+    private final KafkaProducer kafkaProducer;
+
+/* temporary */    private final KafkaTemplate<String, AttendeeIdsDto> kafkaTemplate;
 
     @Override
     public List<EmployeeDto> findAll() {
@@ -55,7 +57,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .flatMap(employeeEntity -> Optional.ofNullable(employeeMapper.entityToDto(employeeEntity)));
         log.info("Employee with id {} is {}", id, employeeById);
 
-        // temporary, for manually testing kafka
+// temporary, emulation of request from event microservice
 
         AttendeeIdsDto attendeeIdsDto = new AttendeeIdsDto(new HashSet<>(), new EventDto());
         attendeeIdsDto.getEmployeeIds().add(2L);
@@ -67,7 +69,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .build();
         kafkaTemplate.send(message);
 
-        // temporary, end
+// temporary, end
 
         return employeeById;
     }
@@ -119,48 +121,56 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public AttendeesDto unattendEvent(AttendeeIdsDto attendeeIdsDto) {
-        AttendeesDto attendeesDto = new AttendeesDto();
-        Long eventId = attendeeIdsDto.getEventDto().getId();
-        Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventId);
-        if (eventIdEntity.isPresent()) {
-            Set<EmployeeEntity> attendingEmployeeEntities = eventIdEntity.get().getEmployeeEntities();
-            Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream()
-                    .map(EmployeeEntity::getId)
-                    .collect(Collectors.toSet());
-            attendeeIdsDto.getEmployeeIds().retainAll(attendingEmployeeIds);
-            Set<EmployeeEntity> employeesToUnattendEntities = employeeRepository.findAllByIdIn(attendeeIdsDto.getEmployeeIds());
-            attendingEmployeeEntities.removeAll(employeesToUnattendEntities);
-            attendeesDto.setEmployeeDtos(employeesToUnattendEntities.stream()
-                    .map(employeeMapper::entityToDto)
-                    .collect(Collectors.toSet()));
-            attendeesDto.setEventDto(attendeeIdsDto.getEventDto());
-        } else {
-            attendeesDto.setEmployeeDtos(new HashSet<>());
-            attendeesDto.setEventDto(new EventDto());
+    public void unattendEvent(Set<Long> employeeIds, EventDto eventDto) {
+        Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventDto.getId());
+        if (!eventIdEntity.isPresent()) {
+            log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
+            return;
         }
+        Set<EmployeeEntity> attendingEmployeeEntities = eventIdEntity.get().getEmployeeEntities();
+        if (attendingEmployeeEntities.isEmpty()) {
+            log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
+            return;
+        }
+        Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream()
+                .map(EmployeeEntity::getId)
+                .collect(Collectors.toSet());
+        employeeIds.retainAll(attendingEmployeeIds);
+        if (employeeIds.isEmpty()) {
+            log.warn("Requested employees' attendance of the event with id {} is not found", eventDto.getId());
+            return;
+        }
+        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
+        kafkaProducer.sendUnattendNotificationRequest(
+                employeeEntities.stream()
+                        .map(employeeMapper::entityToDto)
+                        .collect(Collectors.toSet()),
+                eventDto);
         log.info("{} employees' attendance of the event with id {} is cancelled",
-                attendeesDto.getEmployeeDtos().size(), eventId);
-        return attendeesDto;
+                employeeEntities.size(), eventDto.getId());
+        attendingEmployeeEntities.removeAll(employeeEntities);
     }
 
     @Override
-    public AttendeesDto unattendAndDeleteEvent(AttendeeIdsDto attendeeIdsDto) {
-        AttendeesDto attendeesDto = new AttendeesDto();
-        Long eventId = attendeeIdsDto.getEventDto().getId();
-        Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventId);
-        if (eventIdEntity.isPresent()) {
-            attendeesDto.setEmployeeDtos(eventIdEntity.get().getEmployeeEntities().stream()
-                    .map(employeeMapper::entityToDto)
-                    .collect(Collectors.toSet()));
-            attendeesDto.setEventDto(attendeeIdsDto.getEventDto());
-            eventIdRepository.deleteById(eventId);
-        } else {
-            attendeesDto.setEmployeeDtos(new HashSet<>());
-            attendeesDto.setEventDto(new EventDto());
+    public void unattendAndDeleteEvent(EventDto eventDto) {
+        Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventDto.getId());
+        if (!eventIdEntity.isPresent()) {
+            log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
+            return;
         }
+        Set<EmployeeEntity> employeeEntities = eventIdEntity.get().getEmployeeEntities();
+        if (employeeEntities.isEmpty()) {
+            log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
+            eventIdRepository.deleteById(eventDto.getId());
+            return;
+        }
+        kafkaProducer.sendUnattendNotificationRequest(
+                employeeEntities.stream()
+                        .map(employeeMapper::entityToDto)
+                        .collect(Collectors.toSet()),
+                eventDto);
         log.info("{} employees' attendance of the event with id {} is cancelled",
-                attendeesDto.getEmployeeDtos().size(), eventId);
-        return attendeesDto;
+                employeeEntities.size(), eventDto.getId());
+        eventIdRepository.deleteById(eventDto.getId());
     }
 }

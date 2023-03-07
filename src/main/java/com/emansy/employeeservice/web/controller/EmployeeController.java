@@ -1,7 +1,6 @@
 package com.emansy.employeeservice.web.controller;
 
 import com.emansy.employeeservice.business.service.EmployeeService;
-import com.emansy.employeeservice.model.AttendeeIdsDto;
 import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
 import io.swagger.annotations.Api;
@@ -17,6 +16,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -30,6 +30,7 @@ import javax.validation.constraints.Positive;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Api(tags = "Employee Controller")
 @Log4j2
@@ -155,9 +156,9 @@ public class EmployeeController {
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/{id}/{eventId}")
+    @PatchMapping("/{id}")
     @ApiOperation(value = "Cancels an employee's attendance of an event (if exists)",
-            notes = "Provide ids for an employee and for an event")
+            notes = "Provide an employee's id and event data")
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "The employee's attendance is cancelled (if existed)"),
             @ApiResponse(code = 401, message = "The request requires user authentication"),
@@ -168,15 +169,17 @@ public class EmployeeController {
             @ApiParam(value = "id of an employee", required = true)
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long id,
-            @ApiParam(value = "id of an event", required = true)
-            @PathVariable @NotNull @Positive(message = "a positive integer number is required")
-            Long eventId) {
-        log.info("Cancel employee's with id {} attendance of event with id {} (if exists)", id, eventId);
-        AttendeeIdsDto attendeeIdsDto = new AttendeeIdsDto(new HashSet<>(), new EventDto());
-        attendeeIdsDto.getEmployeeIds().add(id);
-        attendeeIdsDto.getEventDto().setId(eventId);
-        employeeService.unattendEvent(attendeeIdsDto);
-        log.debug("Employee's with id {} attendance of event with id {} is cancelled (if existed)", id, eventId);
+            @Valid @RequestBody EventDto eventDto,
+            BindingResult bindingResult) {
+        log.info("Cancel employee's with id {} attendance of event with id {} (if exists)", id, eventDto.getId());
+        if (bindingResult.hasErrors()) {
+            log.error("Attendance not cancelled: error {}", bindingResult);
+            return ResponseEntity.badRequest().build();
+        }
+        Set<Long> idWrappedForService = new HashSet<>();
+        idWrappedForService.add(id);
+        employeeService.unattendEvent(idWrappedForService, eventDto);
+        log.debug("Employee's with id {} attendance of event with id {} is cancelled (if existed)", id, eventDto.getId());
         return ResponseEntity.noContent().build();
     }
 }

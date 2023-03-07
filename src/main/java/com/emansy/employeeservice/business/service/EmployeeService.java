@@ -1,8 +1,7 @@
 package com.emansy.employeeservice.business.service;
 
-import com.emansy.employeeservice.model.AttendeeIdsDto;
-import com.emansy.employeeservice.model.AttendeesDto;
 import com.emansy.employeeservice.model.EmployeeDto;
+import com.emansy.employeeservice.model.EventDto;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,7 +25,7 @@ public interface EmployeeService {
 
     Set<EmployeeDto> findNonAttendingEmployees(Long eventId);
 
-    AttendeesDto unattendEvent(AttendeeIdsDto attendeeIdsDto);
+    void unattendEvent(Set<Long> employeeIds, EventDto eventDto);
 
-    AttendeesDto unattendAndDeleteEvent(AttendeeIdsDto attendeeIdsDto);
+    void unattendAndDeleteEvent(EventDto eventDto);
 }
