@@ -34,7 +34,7 @@ public class KafkaConsumer {
         return employeeService.findNonAttendingEmployees(eventIdDto.getId());
     }
 
-    @KafkaListener(topics = "unattend_request", groupId = "employee_group")
+    @KafkaListener(topics = "unattend", groupId = "employee_group")
     public void handleUnattendRequest(AttendeeIdsDto attendeeIdsDto) {
         Set<Long> employeeIds = attendeeIdsDto.getEmployeeIds();
         EventDto eventDto = attendeeIdsDto.getEventDto();
