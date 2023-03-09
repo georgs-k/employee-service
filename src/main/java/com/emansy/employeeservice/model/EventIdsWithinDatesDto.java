@@ -11,7 +11,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Component
-public class EventIdsWithDatesDto {
+public class EventIdsWithinDatesDto {
 
     Set<Long> eventIds;
 

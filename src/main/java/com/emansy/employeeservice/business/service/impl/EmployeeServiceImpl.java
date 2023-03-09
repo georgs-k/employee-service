@@ -9,12 +9,8 @@ import com.emansy.employeeservice.business.service.EmployeeService;
 import com.emansy.employeeservice.kafka.KafkaProducer;
 import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
-import com.emansy.employeeservice.model.EventIdDto;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +37,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final KafkaProducer kafkaProducer;
 
-/* temporary */    private final ReplyingKafkaTemplate<String, EventIdDto, Set<EmployeeDto>> employeesReplyingKafkaTemplate;
+//    private final ReplyingKafkaTemplate<String, EventIdDto, Set<EmployeeDto>> employeesReplyingKafkaTemplate;
 
     @Override
     public List<EmployeeDto> findAll() {
@@ -50,7 +46,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
-    @SneakyThrows
     @Override
     public Optional<EmployeeDto> findById(Long id) {
         Optional<EmployeeDto> employeeById = employeeRepository.findById(id)
@@ -58,11 +53,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         log.info("Employee with id {} is {}", id, employeeById);
 
 // temporary, emulation of request from event microservice
-
-        Set<EmployeeDto> employeeDtos = employeesReplyingKafkaTemplate.sendAndReceive(new ProducerRecord<>(
-                "employees-request", new EventIdDto(true, 3L))).get().value();
-        log.info("Cool! {}", employeeDtos);
-
+//
+//        Set<EmployeeDto> employeeDtos = employeesReplyingKafkaTemplate.sendAndReceive(new ProducerRecord<>(
+//                "employees-request", new EventIdDto(true, 3L))).get().value();
+//        log.info("Cool! {}", employeeDtos);
+//
 // temporary, end
 
         return employeeById;
