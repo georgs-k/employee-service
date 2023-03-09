@@ -11,5 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class EventIdDto {
 
+    private Boolean whetherAttendingOrNonAttendingEmployeesAreRequested;
+
     private Long id;
 }

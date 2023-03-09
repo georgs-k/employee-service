@@ -11,8 +11,10 @@ import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
 import com.emansy.employeeservice.model.EventIdDto;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +41,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final KafkaProducer kafkaProducer;
 
-/* temporary */    private final KafkaTemplate<String, EventIdDto> kafkaTemplate;
+/* temporary */    private final ReplyingKafkaTemplate<String, EventIdDto, Set<EmployeeDto>> employeesReplyingKafkaTemplate;
 
     @Override
     public List<EmployeeDto> findAll() {
@@ -48,6 +50,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
+    @SneakyThrows
     @Override
     public Optional<EmployeeDto> findById(Long id) {
         Optional<EmployeeDto> employeeById = employeeRepository.findById(id)
@@ -56,7 +59,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 // temporary, emulation of request from event microservice
 
-        kafkaTemplate.send("attending_employees_request", new EventIdDto(3L));
+        Set<EmployeeDto> employeeDtos = employeesReplyingKafkaTemplate.sendAndReceive(new ProducerRecord<>(
+                "employees-request", new EventIdDto(true, 3L))).get().value();
+        log.info("Cool! {}", employeeDtos);
 
 // temporary, end
 
@@ -130,7 +135,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             return;
         }
         Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
-        kafkaProducer.sendUnattendNotification(
+        kafkaProducer.sendAttendanceNotification(
+                false,
                 employeeEntities.stream()
                         .map(employeeMapper::entityToDto)
                         .collect(Collectors.toSet()),
@@ -153,7 +159,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             eventIdRepository.deleteById(eventDto.getId());
             return;
         }
-        kafkaProducer.sendUnattendNotification(
+        kafkaProducer.sendAttendanceNotification(
+                false,
                 employeeEntities.stream()
                         .map(employeeMapper::entityToDto)
                         .collect(Collectors.toSet()),

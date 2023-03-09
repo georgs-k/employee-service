@@ -13,6 +13,8 @@ import java.util.Set;
 @Component
 public class AttendeeIdsDto {
 
+    private Boolean whetherToAttendOrToUnattend;
+
     private Set<Long> employeeIds;
 
     private EventDto eventDto;
