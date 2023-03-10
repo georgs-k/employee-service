@@ -40,6 +40,7 @@ public class KafkaConsumer {
                 .collect(Collectors.toSet());
         return MessageBuilder.withPayload(payload).build();
     }
+    // temporary end
 
     @KafkaListener(topics = "employees-request", groupId = "employee-group")
     @SendTo
@@ -54,23 +55,22 @@ public class KafkaConsumer {
     }
 
     @KafkaListener(topics = "attendance-request", groupId = "employee-group")
-    public void handleAttendanceRequest(AttendeeIdsDto attendeeIdsDto) {
+    @SendTo
+    public Message<EventDto> handleAttendanceRequest(AttendeeIdsDto attendeeIdsDto) {
         Set<Long> employeeIds = attendeeIdsDto.getEmployeeIds();
         EventDto eventDto = attendeeIdsDto.getEventDto();
         if (attendeeIdsDto.getWhetherToAttendOrToUnattend()) {
-
-            // TO DO: employeeService.attend(employeeIds, eventDto);
-
-            return;
+            log.info("Request for employees' with ids {} attendance of event with id {} is received",
+                    employeeIds, eventDto.getId());
+            return MessageBuilder.withPayload(employeeService.attendEvent(employeeIds, eventDto)).build();
         }
         if (employeeIds.isEmpty()) {
             log.info("Request for cancelling all employees' attendance of event with id {} is received",
                     eventDto.getId());
-            employeeService.unattendAndDeleteEvent(eventDto);
-            return;
+            return MessageBuilder.withPayload(employeeService.unattendAndDeleteEvent(eventDto)).build();
         }
         log.info("Request for cancelling employees' with ids {} attendance of event with id {} is received",
                 employeeIds, eventDto.getId());
-        employeeService.unattendEvent(employeeIds, eventDto);
+        return MessageBuilder.withPayload(employeeService.unattendEvent(employeeIds, eventDto)).build();
     }
 }

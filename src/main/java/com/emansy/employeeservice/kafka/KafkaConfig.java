@@ -65,6 +65,10 @@ public class KafkaConfig {
     }
 
     @Bean
+    public NewTopic attendanceResponseTopic() { return TopicBuilder.name("attendance-response").build();
+    }
+
+    @Bean
     public NewTopic attendanceNotificationTopic() { return TopicBuilder.name("attendance-notification").build();
     }
 }

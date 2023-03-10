@@ -122,22 +122,27 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public void unattendEvent(Set<Long> employeeIds, EventDto eventDto) {
+    public EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto) {
+        return eventDto;
+    }
+
+    @Override
+    public EventDto unattendEvent(Set<Long> employeeIds, EventDto eventDto) {
         Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventDto.getId());
         if (!eventIdEntity.isPresent()) {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
-            return;
+            return eventDto;
         }
         Set<EmployeeEntity> attendingEmployeeEntities = eventIdEntity.get().getEmployeeEntities();
         if (attendingEmployeeEntities.isEmpty()) {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
-            return;
+            return eventDto;
         }
         Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream().map(EmployeeEntity::getId).collect(Collectors.toSet());
         employeeIds.retainAll(attendingEmployeeIds);
         if (employeeIds.isEmpty()) {
             log.warn("Requested employees' attendance of the event with id {} is not found", eventDto.getId());
-            return;
+            return eventDto;
         }
         Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
         kafkaProducer.sendAttendanceNotification(
@@ -147,20 +152,21 @@ public class EmployeeServiceImpl implements EmployeeService {
         log.info("{} employees' attendance of the event with id {} is cancelled",
                 employeeEntities.size(), eventDto.getId());
         attendingEmployeeEntities.removeAll(employeeEntities);
+        return eventDto;
     }
 
     @Override
-    public void unattendAndDeleteEvent(EventDto eventDto) {
+    public EventDto unattendAndDeleteEvent(EventDto eventDto) {
         Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventDto.getId());
         if (!eventIdEntity.isPresent()) {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
-            return;
+            return eventDto;
         }
         Set<EmployeeEntity> employeeEntities = eventIdEntity.get().getEmployeeEntities();
         if (employeeEntities.isEmpty()) {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
             eventIdRepository.deleteById(eventDto.getId());
-            return;
+            return eventDto;
         }
         kafkaProducer.sendAttendanceNotification(
                 false,
@@ -169,5 +175,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         log.info("{} employees' attendance of the event with id {} is cancelled",
                 employeeEntities.size(), eventDto.getId());
         eventIdRepository.deleteById(eventDto.getId());
+        return eventDto;
     }
 }

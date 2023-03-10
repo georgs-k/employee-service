@@ -29,7 +29,9 @@ public interface EmployeeService {
     Set<EventDto> findAttendedEventsBetween(Long employeeId, String fromDate, String thruDate)
             throws ExecutionException, InterruptedException;
 
-    void unattendEvent(Set<Long> employeeIds, EventDto eventDto);
+    EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto);
 
-    void unattendAndDeleteEvent(EventDto eventDto);
+    EventDto unattendEvent(Set<Long> employeeIds, EventDto eventDto);
+
+    EventDto unattendAndDeleteEvent(EventDto eventDto);
 }
