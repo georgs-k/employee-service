@@ -17,28 +17,6 @@ import java.util.Set;
 
 @Configuration
 public class KafkaConfig {
-//
-//    @Bean
-//    public ReplyingKafkaTemplate<String, EventIdDto, Set<EmployeeDto>> employeesReplyingKafkaTemplate(
-//            ProducerFactory<String, EventIdDto> producerFactory,
-//            ConcurrentKafkaListenerContainerFactory<String, Set<EmployeeDto>> listenerContainerFactory) {
-//        ConcurrentMessageListenerContainer<String, Set<EmployeeDto>>
-//                replyContainer = listenerContainerFactory.createContainer("employees-response");
-//        replyContainer.getContainerProperties().setMissingTopicsFatal(false);
-//        replyContainer.getContainerProperties().setGroupId("employee-group");
-//        return new ReplyingKafkaTemplate<>(producerFactory, replyContainer);
-//    }
-//
-//    @Bean
-//    public KafkaTemplate<String, Set<EmployeeDto>> employeesReplyTemplate(
-//            ProducerFactory<String, Set<EmployeeDto>> producerFactory,
-//            ConcurrentKafkaListenerContainerFactory<String, Set<EmployeeDto>> listenerContainerFactory) {
-//        KafkaTemplate<String, Set<EmployeeDto>> kafkaTemplate = new KafkaTemplate<>(producerFactory);
-//        listenerContainerFactory.getContainerProperties().setMissingTopicsFatal(false);
-//        listenerContainerFactory.setReplyTemplate(kafkaTemplate);
-//        return kafkaTemplate;
-//
-//    }
 
     @Bean
     public ReplyingKafkaTemplate<String, EventIdsWithinDatesDto, Set<EventDto>> eventsReplyingKafkaTemplate(
@@ -47,7 +25,7 @@ public class KafkaConfig {
         ConcurrentMessageListenerContainer<String, Set<EventDto>>
                 replyContainer = listenerContainerFactory.createContainer("events-response");
         replyContainer.getContainerProperties().setMissingTopicsFatal(false);
-        replyContainer.getContainerProperties().setGroupId("employee-group");
+        replyContainer.getContainerProperties().setGroupId("event-group");
         return new ReplyingKafkaTemplate<>(producerFactory, replyContainer);
     }
 

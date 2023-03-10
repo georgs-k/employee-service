@@ -13,7 +13,7 @@ import java.util.Set;
 @Component
 public class EventIdsWithinDatesDto {
 
-    Set<Long> eventIds;
+    Set<Long> ids;
 
     String fromDate;
 

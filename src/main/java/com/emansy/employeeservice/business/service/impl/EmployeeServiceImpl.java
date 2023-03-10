@@ -11,14 +11,18 @@ import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 
 import javax.persistence.EntityManager;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -37,8 +41,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final KafkaProducer kafkaProducer;
 
-//    private final ReplyingKafkaTemplate<String, EventIdDto, Set<EmployeeDto>> employeesReplyingKafkaTemplate;
-
     @Override
     public List<EmployeeDto> findAll() {
         List<EmployeeEntity> employeeEntities = employeeRepository.findAll();
@@ -51,15 +53,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         Optional<EmployeeDto> employeeById = employeeRepository.findById(id)
                 .flatMap(employeeEntity -> Optional.ofNullable(employeeMapper.entityToDto(employeeEntity)));
         log.info("Employee with id {} is {}", id, employeeById);
-
-// temporary, emulation of request from event microservice
-//
-//        Set<EmployeeDto> employeeDtos = employeesReplyingKafkaTemplate.sendAndReceive(new ProducerRecord<>(
-//                "employees-request", new EventIdDto(true, 3L))).get().value();
-//        log.info("Cool! {}", employeeDtos);
-//
-// temporary, end
-
         return employeeById;
     }
 
@@ -110,6 +103,25 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    public Set<EventDto> findAttendedEventsBetween(Long employeeId, String fromDate, String thruDate)
+            throws ExecutionException, InterruptedException {
+        Optional<EmployeeEntity> employeeEntity = employeeRepository.findById(employeeId);
+        if (!employeeEntity.isPresent()) {
+            log.error("Exception {} is thrown. Employee with id {} is not found", HttpStatus.BAD_REQUEST, employeeId);
+            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Employee with id " + employeeId + " is not found");
+        }
+        Set<Long> eventIds = employeeEntity.get().getEventIdEntities().stream().map(EventIdEntity::getId).collect(Collectors.toSet());
+        if (eventIds.isEmpty()) {
+            log.info("No attended events found for the employee with id {}", employeeId);
+            return Collections.emptySet();
+        }
+        Set<EventDto> eventDtos = kafkaProducer.requestAndReceiveEvents(eventIds, fromDate, thruDate);
+        log.info("Found {} events, scheduled between {} and {}, for the employee with id {}",
+                eventDtos.size(), fromDate, thruDate, employeeId);
+        return eventDtos;
+    }
+
+    @Override
     public void unattendEvent(Set<Long> employeeIds, EventDto eventDto) {
         Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventDto.getId());
         if (!eventIdEntity.isPresent()) {
@@ -121,9 +133,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
             return;
         }
-        Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream()
-                .map(EmployeeEntity::getId)
-                .collect(Collectors.toSet());
+        Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream().map(EmployeeEntity::getId).collect(Collectors.toSet());
         employeeIds.retainAll(attendingEmployeeIds);
         if (employeeIds.isEmpty()) {
             log.warn("Requested employees' attendance of the event with id {} is not found", eventDto.getId());
@@ -132,9 +142,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
         kafkaProducer.sendAttendanceNotification(
                 false,
-                employeeEntities.stream()
-                        .map(employeeMapper::entityToDto)
-                        .collect(Collectors.toSet()),
+                employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet()),
                 eventDto);
         log.info("{} employees' attendance of the event with id {} is cancelled",
                 employeeEntities.size(), eventDto.getId());
@@ -156,9 +164,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         kafkaProducer.sendAttendanceNotification(
                 false,
-                employeeEntities.stream()
-                        .map(employeeMapper::entityToDto)
-                        .collect(Collectors.toSet()),
+                employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet()),
                 eventDto);
         log.info("{} employees' attendance of the event with id {} is cancelled",
                 employeeEntities.size(), eventDto.getId());

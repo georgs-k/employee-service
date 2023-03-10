@@ -25,12 +25,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 @Api(tags = "Employee Controller")
 @Log4j2
@@ -69,7 +72,7 @@ public class EmployeeController {
             @ApiResponse(code = 404, message = "The server has not found anything matching the Request-URI"),
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<EmployeeDto> findEmployeeById(
-            @ApiParam(value = "id of an employee", required = true)
+            @ApiParam(value = "Id of an employee", required = true)
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long id) {
         log.info("Find an employee by id: {}", id);
@@ -143,7 +146,7 @@ public class EmployeeController {
             @ApiResponse(code = 404, message = "The server has not found anything matching the Request-URI"),
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<Void> deleteEmployeeById(
-            @ApiParam(value = "id of an employee", required = true)
+            @ApiParam(value = "Id of an employee", required = true)
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long id) {
         log.info("Delete an employee by id: {}", id);
@@ -156,6 +159,31 @@ public class EmployeeController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}/{fromDate}/{thruDate}")
+    @ApiOperation(value = "Finds attended events by employee's id and a date interval",
+            notes = "Provide employee's id, earliest date and latest date for the event",
+            response = EventDto.class, responseContainer = "Set")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "The request has succeeded"),
+            @ApiResponse(code = 401, message = "The request requires user authentication"),
+            @ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+            @ApiResponse(code = 500, message = "Server error")})
+    public ResponseEntity<Set<EventDto>> findAttendedEventsBetween(
+            @ApiParam(value = "Id of an employee", required = true)
+            @PathVariable @NotNull @Positive(message = "a positive integer number is required")
+            Long id,
+            @ApiParam(value = "Earliest date of an event", required = true)
+            @PathVariable @NotBlank @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Required date format: yyyy-MM-dd")
+            String fromDate,
+            @ApiParam(value = "Latest date of an event", required = true)
+            @PathVariable @NotBlank @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Required date format: yyyy-MM-dd")
+            String thruDate) throws ExecutionException, InterruptedException {
+        log.info("Find events attended by the employee with id {}, scheduled between {} and {}", id, fromDate, thruDate);
+        Set<EventDto> events = employeeService.findAttendedEventsBetween(id, fromDate, thruDate);
+        log.debug("Number of events is {}", events.size());
+        return ResponseEntity.ok(events);
+    }
+
     @PatchMapping("/{id}")
     @ApiOperation(value = "Cancels an employee's attendance of an event (if exists)",
             notes = "Provide an employee's id and event data")
@@ -166,7 +194,7 @@ public class EmployeeController {
             @ApiResponse(code = 404, message = "The server has not found anything matching the Request-URI"),
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<Void> unattend(
-            @ApiParam(value = "id of an employee", required = true)
+            @ApiParam(value = "Id of an employee", required = true)
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long id,
             @Valid @RequestBody EventDto eventDto,

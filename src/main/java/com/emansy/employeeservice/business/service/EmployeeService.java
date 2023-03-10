@@ -6,6 +6,7 @@ import com.emansy.employeeservice.model.EventDto;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 public interface EmployeeService {
 
@@ -24,6 +25,9 @@ public interface EmployeeService {
     Set<EmployeeDto> findAttendingEmployees(Long eventId);
 
     Set<EmployeeDto> findNonAttendingEmployees(Long eventId);
+
+    Set<EventDto> findAttendedEventsBetween(Long employeeId, String fromDate, String thruDate)
+            throws ExecutionException, InterruptedException;
 
     void unattendEvent(Set<Long> employeeIds, EventDto eventDto);
 
