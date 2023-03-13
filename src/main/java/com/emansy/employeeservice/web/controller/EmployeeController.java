@@ -179,14 +179,20 @@ public class EmployeeController {
             @PathVariable @NotBlank @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Required date format: yyyy-MM-dd")
             String thruDate) throws ExecutionException, InterruptedException {
         log.info("Find events attended by the employee with id {}, scheduled between {} and {}", id, fromDate, thruDate);
-        Set<EventDto> events = employeeService.findAttendedEventsBetween(id, fromDate, thruDate);
+        if (!employeeService.existsById(id)) {
+            log.warn("Employee with id {} is not found", id);
+            return ResponseEntity.notFound().build();
+        }
+        Set<Long> idWrappedForService = new HashSet<>();
+        idWrappedForService.add(id);
+        Set<EventDto> events = employeeService.findAttendedEventsBetween(idWrappedForService, fromDate, thruDate);
         log.debug("Number of events is {}", events.size());
         return ResponseEntity.ok(events);
     }
 
     @PatchMapping("/{id}")
     @ApiOperation(value = "Cancels an employee's attendance of an event (if exists)",
-            notes = "Provide an employee's id and event data")
+            notes = "Provide employee's id and event data")
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "The employee's attendance is cancelled (if existed)"),
             @ApiResponse(code = 401, message = "The request requires user authentication"),
@@ -203,6 +209,10 @@ public class EmployeeController {
         if (bindingResult.hasErrors()) {
             log.error("Attendance not cancelled: error {}", bindingResult);
             return ResponseEntity.badRequest().build();
+        }
+        if (!employeeService.existsById(id)) {
+            log.warn("Employee with id {} is not found", id);
+            return ResponseEntity.notFound().build();
         }
         Set<Long> idWrappedForService = new HashSet<>();
         idWrappedForService.add(id);

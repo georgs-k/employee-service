@@ -26,10 +26,10 @@ public interface EmployeeService {
 
     Set<EmployeeDto> findNonAttendingEmployees(Long eventId);
 
-    Set<EventDto> findAttendedEventsBetween(Long employeeId, String fromDate, String thruDate)
+    Set<EventDto> findAttendedEventsBetween(Set<Long> employeeIds, String fromDate, String thruDate)
             throws ExecutionException, InterruptedException;
 
-    EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto);
+    EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto) throws ExecutionException, InterruptedException;
 
     EventDto unattendEvent(Set<Long> employeeIds, EventDto eventDto);
 

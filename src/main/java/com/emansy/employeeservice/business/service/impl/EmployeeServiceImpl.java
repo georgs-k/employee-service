@@ -11,12 +11,11 @@ import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.HttpClientErrorException;
 
 import javax.persistence.EntityManager;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -103,26 +102,26 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public Set<EventDto> findAttendedEventsBetween(Long employeeId, String fromDate, String thruDate)
+    public Set<EventDto> findAttendedEventsBetween(Set<Long> employeeIds, String fromDate, String thruDate)
             throws ExecutionException, InterruptedException {
-        Optional<EmployeeEntity> employeeEntity = employeeRepository.findById(employeeId);
-        if (!employeeEntity.isPresent()) {
-            log.error("Exception {} is thrown. Employee with id {} is not found", HttpStatus.BAD_REQUEST, employeeId);
-            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Employee with id " + employeeId + " is not found");
-        }
-        Set<Long> eventIds = employeeEntity.get().getEventIdEntities().stream().map(EventIdEntity::getId).collect(Collectors.toSet());
+        Set<Long> eventIds = new HashSet<>();
+        employeeRepository.findAllByIdIn(employeeIds)
+                .forEach(employeeEntity -> eventIds
+                        .addAll(employeeEntity.getEventIdEntities()
+                                .stream().map(EventIdEntity::getId).collect(Collectors.toSet())));
         if (eventIds.isEmpty()) {
-            log.info("No attended events found for the employee with id {}", employeeId);
+            log.info("No attended events found for the employees with ids {}", employeeIds);
             return Collections.emptySet();
         }
         Set<EventDto> eventDtos = kafkaProducer.requestAndReceiveEvents(eventIds, fromDate, thruDate);
-        log.info("Found {} events, scheduled between {} and {}, for the employee with id {}",
-                eventDtos.size(), fromDate, thruDate, employeeId);
+        log.info("Found {} events, scheduled between {} and {}, for the employees with ids {}",
+                eventDtos.size(), fromDate, thruDate, employeeIds);
         return eventDtos;
     }
 
     @Override
-    public EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto) {
+    public EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto) throws ExecutionException, InterruptedException {
+        Set<EventDto> attendedEventDtos = findAttendedEventsBetween(employeeIds, String.valueOf(LocalDate.now()), "");
         return eventDto;
     }
 
