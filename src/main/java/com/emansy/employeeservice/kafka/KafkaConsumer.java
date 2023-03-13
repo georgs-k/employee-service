@@ -16,6 +16,7 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -56,7 +57,7 @@ public class KafkaConsumer {
 
     @KafkaListener(topics = "attendance-request", groupId = "employee-group")
     @SendTo
-    public Message<EventDto> handleAttendanceRequest(AttendeeIdsDto attendeeIdsDto) {
+    public Message<EventDto> handleAttendanceRequest(AttendeeIdsDto attendeeIdsDto) throws ExecutionException, InterruptedException {
         Set<Long> employeeIds = attendeeIdsDto.getEmployeeIds();
         EventDto eventDto = attendeeIdsDto.getEventDto();
         if (attendeeIdsDto.getWhetherToAttendOrToUnattend()) {

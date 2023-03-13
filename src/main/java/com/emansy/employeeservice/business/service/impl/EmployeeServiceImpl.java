@@ -6,19 +6,26 @@ import com.emansy.employeeservice.business.repository.EventIdRepository;
 import com.emansy.employeeservice.business.repository.model.EmployeeEntity;
 import com.emansy.employeeservice.business.repository.model.EventIdEntity;
 import com.emansy.employeeservice.business.service.EmployeeService;
+import com.emansy.employeeservice.model.TimeSlotDto;
 import com.emansy.employeeservice.kafka.KafkaProducer;
 import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
+import com.emansy.employeeservice.model.PublicHolidayDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -39,6 +46,22 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final EventIdRepository eventIdRepository;
 
     private final KafkaProducer kafkaProducer;
+
+    private final RestTemplate restTemplate;
+
+    private final String PUBLIC_HOLIDAY_URL = "https://date.nager.at/api/v3/NextPublicHolidays/";
+
+    private TimeSlotDto timeSlotForEvent;
+
+    private Set<TimeSlotDto> unavailableTimeSlots;
+
+    private LocalTime earliestWorkingTime;
+
+    private LocalTime latestWorkingTime;
+
+    private Set<String> countryCodes;
+
+    private Set<LocalDate> unavailableDates;
 
     @Override
     public List<EmployeeDto> findAll() {
@@ -107,8 +130,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         Set<Long> eventIds = new HashSet<>();
         employeeRepository.findAllByIdIn(employeeIds)
                 .forEach(employeeEntity -> eventIds
-                        .addAll(employeeEntity.getEventIdEntities()
-                                .stream().map(EventIdEntity::getId).collect(Collectors.toSet())));
+                        .addAll(employeeEntity.getEventIdEntities().stream()
+                                .map(EventIdEntity::getId).collect(Collectors.toSet())));
         if (eventIds.isEmpty()) {
             log.info("No attended events found for the employees with ids {}", employeeIds);
             return Collections.emptySet();
@@ -121,7 +144,35 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto) throws ExecutionException, InterruptedException {
-        Set<EventDto> attendedEventDtos = findAttendedEventsBetween(employeeIds, String.valueOf(LocalDate.now()), "");
+        timeSlotForEvent = new TimeSlotDto(
+                LocalDate.parse(eventDto.getDate()),
+                LocalTime.parse(eventDto.getStartTime()),
+                LocalTime.parse(eventDto.getEndTime()));
+        unavailableTimeSlots = findAttendedEventsBetween(employeeIds, String.valueOf(LocalDate.now()), "").stream()
+                .map(attendedEvent -> new TimeSlotDto(
+                        LocalDate.parse(attendedEvent.getDate()),
+                        LocalTime.parse(attendedEvent.getStartTime()),
+                        LocalTime.parse(attendedEvent.getEndTime())))
+                .collect(Collectors.toSet());
+        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
+        earliestWorkingTime = employeeEntities.stream()
+                .map(EmployeeEntity::getWorkingStartTime)
+                .max(Comparator.naturalOrder())
+                .orElse(LocalTime.parse("09:00:00"));
+        latestWorkingTime = employeeEntities.stream()
+                .map(EmployeeEntity::getWorkingEndTime)
+                .min(Comparator.naturalOrder())
+                .orElse(LocalTime.parse("18:00:00"));
+        countryCodes = employeeEntities.stream()
+                .map(employeeEntity -> employeeEntity.getOfficeEntity().getCountryEntity().getCode())
+                .collect(Collectors.toSet());
+        if (countryCodes.isEmpty()) countryCodes.add("lv");
+        unavailableDates = new HashSet<>();
+        countryCodes.forEach(countryCode -> unavailableDates.addAll(Arrays.stream(Objects.requireNonNull(
+                restTemplate.getForObject(PUBLIC_HOLIDAY_URL + countryCode, PublicHolidayDto[].class)))
+                        .map(publicHolidayDto -> LocalDate.parse(publicHolidayDto.getDate()))
+                        .collect(Collectors.toSet())));
+
         return eventDto;
     }
 
