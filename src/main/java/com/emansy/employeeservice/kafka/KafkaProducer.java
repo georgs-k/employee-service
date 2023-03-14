@@ -4,6 +4,7 @@ import com.emansy.employeeservice.model.AttendeesDto;
 import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
 import com.emansy.employeeservice.model.EventIdsWithinDatesDto;
+import com.emansy.employeeservice.model.EventsDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -21,19 +22,19 @@ import java.util.concurrent.ExecutionException;
 @Component
 public class KafkaProducer {
 
-    private final ReplyingKafkaTemplate<String, EventIdsWithinDatesDto, Set<EventDto>> eventsReplyingKafkaTemplate;
+    private final ReplyingKafkaTemplate<String, EventIdsWithinDatesDto, EventsDto> eventsReplyingKafkaTemplate;
 
     private final KafkaTemplate<String, AttendeesDto> attendanceKafkaTemplate;
 
     public Set<EventDto> requestAndReceiveEvents(Set<Long> eventIds, String fromDate, String thruDate)
             throws ExecutionException, InterruptedException {
-        ConsumerRecord<String, Set<EventDto>> consumerRecord = eventsReplyingKafkaTemplate.sendAndReceive(
+        ConsumerRecord<String, EventsDto> consumerRecord = eventsReplyingKafkaTemplate.sendAndReceive(
                 new ProducerRecord<>("events-request", new EventIdsWithinDatesDto(eventIds, fromDate, thruDate))).get();
         if (consumerRecord == null) {
             log.error("Something went wrong, no response from kafka topic: events-response");
             return Collections.emptySet();
         }
-        Set<EventDto> eventDtos = consumerRecord.value();
+        Set<EventDto> eventDtos = consumerRecord.value().getEventDtos();
         log.info("{} events received from kafka topic: events-response", eventDtos.size());
         return eventDtos;
     }

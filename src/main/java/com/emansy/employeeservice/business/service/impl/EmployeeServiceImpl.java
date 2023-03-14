@@ -6,18 +6,23 @@ import com.emansy.employeeservice.business.repository.EventIdRepository;
 import com.emansy.employeeservice.business.repository.model.EmployeeEntity;
 import com.emansy.employeeservice.business.repository.model.EventIdEntity;
 import com.emansy.employeeservice.business.service.EmployeeService;
+import com.emansy.employeeservice.model.AttendeeIdsDto;
 import com.emansy.employeeservice.model.TimeSlotDto;
 import com.emansy.employeeservice.kafka.KafkaProducer;
 import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
 import com.emansy.employeeservice.model.PublicHolidayDto;
+import com.emansy.employeeservice.resttemplate.PublicHolidayRestTemplate;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
@@ -47,21 +52,23 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final KafkaProducer kafkaProducer;
 
-    private final RestTemplate restTemplate;
+    private final PublicHolidayRestTemplate publicHolidayRestTemplate;
 
     private final String PUBLIC_HOLIDAY_URL = "https://date.nager.at/api/v3/NextPublicHolidays/";
 
-    private TimeSlotDto timeSlotForEvent;
+    private TimeSlotDto availableTimeSlot;
 
     private Set<TimeSlotDto> unavailableTimeSlots;
 
-    private LocalTime earliestWorkingTime;
+    private LocalTime earliestAvailableStartTime;
 
-    private LocalTime latestWorkingTime;
+    private LocalTime latestAvailableStartTime;
 
     private Set<String> countryCodes;
 
     private Set<LocalDate> unavailableDates;
+
+    /* temporary */ private final ReplyingKafkaTemplate<String, AttendeeIdsDto, EventDto> replyingKafkaTemplate;
 
     @Override
     public List<EmployeeDto> findAll() {
@@ -70,11 +77,22 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
+    @SneakyThrows
     @Override
     public Optional<EmployeeDto> findById(Long id) {
         Optional<EmployeeDto> employeeById = employeeRepository.findById(id)
                 .flatMap(employeeEntity -> Optional.ofNullable(employeeMapper.entityToDto(employeeEntity)));
         log.info("Employee with id {} is {}", id, employeeById);
+
+        // temporary, for manual testing:
+        Set<Long> attendeeIds = new HashSet<>();
+        attendeeIds.add(3L);
+        replyingKafkaTemplate.sendAndReceive(new ProducerRecord<>("attendance-request", new AttendeeIdsDto(
+                true,
+                attendeeIds,
+                new EventDto(5L, "Event", "Details", "2023-04-14", "10:00:00", "12:30:00")))).get().value();
+        // temporary - end
+
         return employeeById;
     }
 
@@ -137,14 +155,16 @@ public class EmployeeServiceImpl implements EmployeeService {
             return Collections.emptySet();
         }
         Set<EventDto> eventDtos = kafkaProducer.requestAndReceiveEvents(eventIds, fromDate, thruDate);
-        log.info("Found {} events, scheduled between {} and {}, for the employees with ids {}",
+        if (thruDate.isEmpty()) log.info("Found {} future events for the employees with ids {}",
+                eventDtos.size(), employeeIds);
+        else log.info("Found {} events, scheduled between {} and {}, for the employees with ids {}",
                 eventDtos.size(), fromDate, thruDate, employeeIds);
         return eventDtos;
     }
 
     @Override
     public EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto) throws ExecutionException, InterruptedException {
-        timeSlotForEvent = new TimeSlotDto(
+        availableTimeSlot = new TimeSlotDto(
                 LocalDate.parse(eventDto.getDate()),
                 LocalTime.parse(eventDto.getStartTime()),
                 LocalTime.parse(eventDto.getEndTime()));
@@ -155,23 +175,29 @@ public class EmployeeServiceImpl implements EmployeeService {
                         LocalTime.parse(attendedEvent.getEndTime())))
                 .collect(Collectors.toSet());
         Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
-        earliestWorkingTime = employeeEntities.stream()
+        earliestAvailableStartTime = employeeEntities.stream()
                 .map(EmployeeEntity::getWorkingStartTime)
                 .max(Comparator.naturalOrder())
                 .orElse(LocalTime.parse("09:00:00"));
-        latestWorkingTime = employeeEntities.stream()
+        log.info("Earliest available starting time for the event is {}", earliestAvailableStartTime);
+        latestAvailableStartTime = employeeEntities.stream()
                 .map(EmployeeEntity::getWorkingEndTime)
                 .min(Comparator.naturalOrder())
-                .orElse(LocalTime.parse("18:00:00"));
+                .orElse(LocalTime.parse("18:00:00"))
+                .minus(Duration.between(availableTimeSlot.getStartTime(), availableTimeSlot.getEndTime()));
+        log.info("Latest available starting time for the event is {}", latestAvailableStartTime);
         countryCodes = employeeEntities.stream()
                 .map(employeeEntity -> employeeEntity.getOfficeEntity().getCountryEntity().getCode())
                 .collect(Collectors.toSet());
         if (countryCodes.isEmpty()) countryCodes.add("lv");
+        log.info("Employees from the countries with codes {} are invited to the event", countryCodes);
         unavailableDates = new HashSet<>();
         countryCodes.forEach(countryCode -> unavailableDates.addAll(Arrays.stream(Objects.requireNonNull(
-                restTemplate.getForObject(PUBLIC_HOLIDAY_URL + countryCode, PublicHolidayDto[].class)))
+                publicHolidayRestTemplate.getForObject(PUBLIC_HOLIDAY_URL + countryCode, PublicHolidayDto[].class)))
                         .map(publicHolidayDto -> LocalDate.parse(publicHolidayDto.getDate()))
                         .collect(Collectors.toSet())));
+        log.info("{} public holiday dates are received from the external API: {}",
+                unavailableDates.size(), PUBLIC_HOLIDAY_URL);
 
         return eventDto;
     }

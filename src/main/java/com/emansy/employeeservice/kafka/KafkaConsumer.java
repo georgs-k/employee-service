@@ -2,10 +2,11 @@ package com.emansy.employeeservice.kafka;
 
 import com.emansy.employeeservice.business.service.EmployeeService;
 import com.emansy.employeeservice.model.AttendeeIdsDto;
-import com.emansy.employeeservice.model.EmployeeDto;
+import com.emansy.employeeservice.model.EmployeesDto;
 import com.emansy.employeeservice.model.EventDto;
 import com.emansy.employeeservice.model.EventIdDto;
 import com.emansy.employeeservice.model.EventIdsWithinDatesDto;
+import com.emansy.employeeservice.model.EventsDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -29,30 +30,28 @@ public class KafkaConsumer {
     // temporary - a stub for event-service:
     @KafkaListener(topics = "events-request", groupId = "event-group")
     @SendTo
-    public Message<Set<EventDto>> handleEventRequestStub(ConsumerRecord<String, EventIdsWithinDatesDto> consumerRecord) {
+    public Message<EventsDto> handleEventRequestStub(ConsumerRecord<String, EventIdsWithinDatesDto> consumerRecord) {
         Set<Long> eventIds = consumerRecord.value().getIds();
         String fromDate = consumerRecord.value().getFromDate();
         String thruDate = consumerRecord.value().getThruDate();
-        log.info("Request for events with ids {}, scheduled within dates {} and {}, is received",
-                eventIds, fromDate, thruDate);
-        Set<EventDto> payload = eventIds.stream()
+        EventsDto payload = new EventsDto(eventIds.stream()
                 .map(eventId -> new EventDto(
-                        eventId, "Event", "Details", "2022-12-12", "09:00:00", "18:00:00"))
-                .collect(Collectors.toSet());
+                        eventId, "Event", "Details", "2023-04-14", "10:00:00", "11:00:00"))
+                .collect(Collectors.toSet()));
         return MessageBuilder.withPayload(payload).build();
     }
     // temporary end
 
     @KafkaListener(topics = "employees-request", groupId = "employee-group")
     @SendTo
-    public Message<Set<EmployeeDto>> handleEmployeesRequest(ConsumerRecord<String, EventIdDto> consumerRecord) {
+    public Message<EmployeesDto> handleEmployeesRequest(ConsumerRecord<String, EventIdDto> consumerRecord) {
         Long eventId = consumerRecord.value().getId();
         if (consumerRecord.value().getWhetherAttendingOrNonAttendingEmployeesAreRequested()) {
             log.info("Request for employees attending event with id {} is received", eventId);
-            return MessageBuilder.withPayload(employeeService.findAttendingEmployees(eventId)).build();
+            return MessageBuilder.withPayload(new EmployeesDto(employeeService.findAttendingEmployees(eventId))).build();
         }
         log.info("Request for employees not attending event with id {} is received", eventId);
-        return MessageBuilder.withPayload(employeeService.findNonAttendingEmployees(eventId)).build();
+        return MessageBuilder.withPayload(new EmployeesDto(employeeService.findNonAttendingEmployees(eventId))).build();
     }
 
     @KafkaListener(topics = "attendance-request", groupId = "employee-group")
