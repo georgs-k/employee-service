@@ -2,6 +2,7 @@ package com.emansy.employeeservice.web.controller;
 
 import com.emansy.employeeservice.business.service.EmployeeService;
 import com.emansy.employeeservice.model.EmployeeDto;
+import com.emansy.employeeservice.model.EventDto;
 import com.emansy.employeeservice.model.JobTitleDto;
 import com.emansy.employeeservice.model.OfficeDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,9 +18,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -174,6 +179,74 @@ public class EmployeeControllerTest {
         verify(service, times(0)).deleteById(anyLong());
     }
 
+    @Test
+    void findAttendedEventsBetweenTestPositive() throws Exception {
+        Set<EventDto> eventDtos = new HashSet<>();
+        eventDtos.add(createEventDto());
+        eventDtos.add(createAnotherEventDto());
+        when(service.existsById(anyLong())).thenReturn(true);
+        when(service.findAttendedEventsBetween(anySet(), anyString(), anyString())).thenReturn(eventDtos);
+        mockMvc.perform(MockMvcRequestBuilders.get(URL + "/1/2023-01-01/2024-01-01"))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].title").value("Title"))
+                .andExpect(status().isOk());
+        verify(service, times(1)).existsById(anyLong());
+        verify(service, times(1)).findAttendedEventsBetween(anySet(), anyString(), anyString());
+    }
+
+    @Test
+    void findAttendedEventsBetweenTestNegative() throws Exception {
+        when(service.existsById(anyLong())).thenReturn(false);
+        mockMvc.perform(MockMvcRequestBuilders.get(URL + "/1/2023-01-01/2024-01-01"))
+                .andExpect(status().isNotFound());
+        verify(service, times(1)).existsById(anyLong());
+        verify(service, times(0)).findAttendedEventsBetween(anySet(), anyString(), anyString());
+    }
+
+    @Test
+    void unattendTestPositive() throws Exception {
+        EventDto eventDto = createEventDto();
+        when(service.existsById(anyLong())).thenReturn(true);
+        when(service.unattendEvent(anySet(), any())).thenReturn(eventDto);
+        mockMvc.perform(MockMvcRequestBuilders
+                        .patch(URL + "/1")
+                        .content(objectMapper.writeValueAsString(eventDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+        verify(service, times(1)).existsById(anyLong());
+        verify(service, times(1)).unattendEvent(anySet(), any());
+    }
+
+    @Test
+    void unattendTestNegativeBadRequest() throws Exception {
+        EventDto eventDto = createEventDto();
+        eventDto.setTitle("");
+        mockMvc.perform(MockMvcRequestBuilders
+                        .patch(URL + "/1")
+                        .content(objectMapper.writeValueAsString(eventDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+        verify(service, times(0)).existsById(anyLong());
+        verify(service, times(0)).unattendEvent(anySet(), any());
+    }
+
+    @Test
+    void unattendTestNegativeNotFound() throws Exception {
+        EventDto eventDto = createEventDto();
+        when(service.existsById(anyLong())).thenReturn(false);
+        mockMvc.perform(MockMvcRequestBuilders
+                        .patch(URL + "/1")
+                        .content(objectMapper.writeValueAsString(eventDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        verify(service, times(1)).existsById(anyLong());
+        verify(service, times(0)).unattendEvent(anySet(), any());
+    }
+
     private EmployeeDto createEmployeeDto() {
         EmployeeDto employeeDto = new EmployeeDto();
         employeeDto.setId(1L);
@@ -187,5 +260,22 @@ public class EmployeeControllerTest {
         employeeDto.setWorkingEndTime("18:00:00");
         employeeDto.setEventIds(new HashSet<>());
         return employeeDto;
+    }
+
+    private EventDto createEventDto() {
+        EventDto eventDto = new EventDto();
+        eventDto.setId(1L);
+        eventDto.setTitle("Title");
+        eventDto.setDetails("Details");
+        eventDto.setDate("2023-16-03");
+        eventDto.setStartTime("12:00:00");
+        eventDto.setEndTime("13:00:00");
+        return eventDto;
+    }
+
+    private EventDto createAnotherEventDto() {
+        EventDto eventDto = createEventDto();
+        eventDto.setId(2L);
+        return eventDto;
     }
 }
