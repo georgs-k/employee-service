@@ -7,7 +7,6 @@ import com.emansy.employeeservice.business.repository.model.EmployeeEntity;
 import com.emansy.employeeservice.business.repository.model.EventIdEntity;
 import com.emansy.employeeservice.business.service.EmployeeService;
 import com.emansy.employeeservice.model.AttendeeIdsDto;
-import com.emansy.employeeservice.model.TimeSlotDto;
 import com.emansy.employeeservice.kafka.KafkaProducer;
 import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
@@ -22,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -56,17 +56,17 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final String PUBLIC_HOLIDAY_URL = "https://date.nager.at/api/v3/NextPublicHolidays/";
 
-    private TimeSlotDto availableTimeSlot;
+    private TimeSlot timeSlotForEvent;
 
-    private Set<TimeSlotDto> unavailableTimeSlots;
+    private Set<TimeSlot> unavailableTimeSlots;
 
     private LocalTime earliestAvailableStartTime;
 
     private LocalTime latestAvailableStartTime;
 
-    private Set<String> countryCodes;
+    private Set<LocalDate> publicHolidays;
 
-    private Set<LocalDate> unavailableDates;
+    private boolean isTimeSlotForEventChanged;
 
     /* temporary */ private final ReplyingKafkaTemplate<String, AttendeeIdsDto, EventDto> replyingKafkaTemplate;
 
@@ -90,7 +90,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         replyingKafkaTemplate.sendAndReceive(new ProducerRecord<>("attendance-request", new AttendeeIdsDto(
                 true,
                 attendeeIds,
-                new EventDto(5L, "Event", "Details", "2023-04-14", "10:00:00", "12:30:00")))).get().value();
+                new EventDto(5L, "Event", "Details", "2023-04-14", "10:00:00", "12:30:00")
+            ))).get().value();
         // temporary - end
 
         return employeeById;
@@ -164,42 +165,115 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto) throws ExecutionException, InterruptedException {
-        availableTimeSlot = new TimeSlotDto(
+        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
+        if (employeeEntities.isEmpty()) {
+            log.warn("Employees with ids {} are not found", employeeIds);
+            return eventDto;
+        }
+        timeSlotForEvent = new TimeSlot(
                 LocalDate.parse(eventDto.getDate()),
                 LocalTime.parse(eventDto.getStartTime()),
-                LocalTime.parse(eventDto.getEndTime()));
-        unavailableTimeSlots = findAttendedEventsBetween(employeeIds, String.valueOf(LocalDate.now()), "").stream()
-                .map(attendedEvent -> new TimeSlotDto(
+                LocalTime.parse(eventDto.getEndTime())
+        );
+        Set<EmployeeEntity> attendingEmployeeEntities = eventIdRepository.findById((eventDto.getId()))
+                .orElse(eventIdRepository.save(new EventIdEntity(eventDto.getId(), new HashSet<>())))
+                .getEmployeeEntities();
+        attendingEmployeeEntities.addAll(employeeEntities);
+        Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream()
+                .map(EmployeeEntity::getId)
+                .collect(Collectors.toSet());
+        unavailableTimeSlots = findAttendedEventsBetween(attendingEmployeeIds, String.valueOf(LocalDate.now()), "").stream()
+                .map(attendedEvent -> new TimeSlot(
                         LocalDate.parse(attendedEvent.getDate()),
                         LocalTime.parse(attendedEvent.getStartTime()),
                         LocalTime.parse(attendedEvent.getEndTime())))
                 .collect(Collectors.toSet());
-        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
-        earliestAvailableStartTime = employeeEntities.stream()
+        earliestAvailableStartTime = attendingEmployeeEntities.stream()
                 .map(EmployeeEntity::getWorkingStartTime)
                 .max(Comparator.naturalOrder())
                 .orElse(LocalTime.parse("09:00:00"));
         log.info("Earliest available starting time for the event is {}", earliestAvailableStartTime);
-        latestAvailableStartTime = employeeEntities.stream()
+        latestAvailableStartTime = attendingEmployeeEntities.stream()
                 .map(EmployeeEntity::getWorkingEndTime)
                 .min(Comparator.naturalOrder())
                 .orElse(LocalTime.parse("18:00:00"))
-                .minus(Duration.between(availableTimeSlot.getStartTime(), availableTimeSlot.getEndTime()));
+                .minus(Duration.between(timeSlotForEvent.getStartTime(), timeSlotForEvent.getEndTime()));
+        isTimeSlotForEventChanged = false;
+        if (latestAvailableStartTime.isBefore(earliestAvailableStartTime)) {
+            timeSlotForEvent.setEndTime(timeSlotForEvent.getEndTime()
+                    .minus(Duration.between(latestAvailableStartTime, earliestAvailableStartTime)));
+            latestAvailableStartTime = earliestAvailableStartTime;
+            isTimeSlotForEventChanged = true;
+        }
         log.info("Latest available starting time for the event is {}", latestAvailableStartTime);
-        countryCodes = employeeEntities.stream()
+        Set<String> countryCodes = attendingEmployeeEntities.stream()
                 .map(employeeEntity -> employeeEntity.getOfficeEntity().getCountryEntity().getCode())
                 .collect(Collectors.toSet());
-        if (countryCodes.isEmpty()) countryCodes.add("lv");
+        if (countryCodes.isEmpty()) countryCodes.add("LV");
         log.info("Employees from the countries with codes {} are invited to the event", countryCodes);
-        unavailableDates = new HashSet<>();
-        countryCodes.forEach(countryCode -> unavailableDates.addAll(Arrays.stream(Objects.requireNonNull(
+        publicHolidays = new HashSet<>();
+        countryCodes.forEach(countryCode -> publicHolidays.addAll(Arrays.stream(Objects.requireNonNull(
                 publicHolidayRestTemplate.getForObject(PUBLIC_HOLIDAY_URL + countryCode, PublicHolidayDto[].class)))
                         .map(publicHolidayDto -> LocalDate.parse(publicHolidayDto.getDate()))
                         .collect(Collectors.toSet())));
         log.info("{} public holiday dates are received from the external API: {}",
-                unavailableDates.size(), PUBLIC_HOLIDAY_URL);
-
+                publicHolidays.size(), PUBLIC_HOLIDAY_URL);
+        findTimeSlotForEvent();
+        if (isTimeSlotForEventChanged) {
+            attendingEmployeeEntities.removeAll(employeeEntities);
+            eventDto.setDate(String.valueOf(timeSlotForEvent.getDate()));
+            eventDto.setStartTime(String.valueOf(timeSlotForEvent.getStartTime()));
+            eventDto.setEndTime(String.valueOf(timeSlotForEvent.getEndTime()));
+            log.info("Requested event is not available for all attending employees. Rescheduled event is offered: {}",
+                    eventDto);
+            return eventDto;
+        }
+        kafkaProducer.sendAttendanceNotification(
+                true,
+                employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet()),
+                eventDto
+        );
+        log.info("{} employees attendance of the event with id {} is scheduled",
+                employeeEntities.size(), eventDto.getId());
         return eventDto;
+    }
+
+    private void findTimeSlotForEvent() {
+        Optional<TimeSlot> conflictingTimeSlot;
+        do {
+            while (timeSlotForEvent.getDate().getDayOfWeek().equals(DayOfWeek.SATURDAY)
+                    || timeSlotForEvent.getDate().getDayOfWeek().equals(DayOfWeek.SUNDAY)
+                    || publicHolidays.contains(timeSlotForEvent.getDate()))
+                rescheduleToNextMorning();
+            do {
+                conflictingTimeSlot = unavailableTimeSlots.stream()
+                        .filter(unavailableTimeSlot -> timeSlotForEvent.getDate().equals(unavailableTimeSlot.getDate())
+                                && timeSlotForEvent.getStartTime().isBefore(unavailableTimeSlot.getEndTime())
+                                && timeSlotForEvent.getEndTime().isAfter(unavailableTimeSlot.getStartTime()))
+                        .findAny();
+                if (!conflictingTimeSlot.isPresent()) return;
+            } while (manageToRescheduleToSameDayLater(conflictingTimeSlot.get()));
+        } while (true);
+    }
+
+    private void rescheduleToNextMorning() {
+        timeSlotForEvent.setDate(timeSlotForEvent.getDate().plusDays(1));
+        timeSlotForEvent.setEndTime(earliestAvailableStartTime.plus(
+                Duration.between(timeSlotForEvent.getStartTime(), timeSlotForEvent.getEndTime())));
+        timeSlotForEvent.setStartTime(earliestAvailableStartTime);
+        isTimeSlotForEventChanged = true;
+    }
+
+    private boolean manageToRescheduleToSameDayLater(TimeSlot conflictingTimeSlot) {
+        if (conflictingTimeSlot.getEndTime().isAfter(latestAvailableStartTime)) {
+            rescheduleToNextMorning();
+            return false;
+        }
+        timeSlotForEvent.setEndTime(conflictingTimeSlot.getEndTime().plus(
+                Duration.between(timeSlotForEvent.getStartTime(), timeSlotForEvent.getEndTime())));
+        timeSlotForEvent.setStartTime(conflictingTimeSlot.getEndTime());
+        isTimeSlotForEventChanged = true;
+        return true;
     }
 
     @Override
@@ -224,7 +298,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         kafkaProducer.sendAttendanceNotification(
                 false,
                 employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet()),
-                eventDto);
+                eventDto
+        );
         log.info("{} employees' attendance of the event with id {} is cancelled",
                 employeeEntities.size(), eventDto.getId());
         attendingEmployeeEntities.removeAll(employeeEntities);
@@ -247,7 +322,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         kafkaProducer.sendAttendanceNotification(
                 false,
                 employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet()),
-                eventDto);
+                eventDto
+        );
         log.info("{} employees' attendance of the event with id {} is cancelled",
                 employeeEntities.size(), eventDto.getId());
         eventIdRepository.deleteById(eventDto.getId());

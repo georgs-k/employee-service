@@ -29,7 +29,8 @@ public class KafkaProducer {
     public Set<EventDto> requestAndReceiveEvents(Set<Long> eventIds, String fromDate, String thruDate)
             throws ExecutionException, InterruptedException {
         ConsumerRecord<String, EventsDto> consumerRecord = eventsReplyingKafkaTemplate.sendAndReceive(
-                new ProducerRecord<>("events-request", new EventIdsWithinDatesDto(eventIds, fromDate, thruDate))).get();
+                new ProducerRecord<>("events-request", new EventIdsWithinDatesDto(eventIds, fromDate, thruDate)))
+                .get();
         if (consumerRecord == null) {
             log.error("Something went wrong, no response from kafka topic: events-response");
             return Collections.emptySet();

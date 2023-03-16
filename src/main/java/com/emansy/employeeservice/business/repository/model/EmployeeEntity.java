@@ -63,6 +63,7 @@ public class EmployeeEntity {
     @JoinTable(
             name = "event_attended",
             joinColumns = @JoinColumn(name = "employee_id"),
-            inverseJoinColumns = @JoinColumn(name = "event_id"))
+            inverseJoinColumns = @JoinColumn(name = "event_id")
+    )
     private Set<EventIdEntity> eventIdEntities;
 }

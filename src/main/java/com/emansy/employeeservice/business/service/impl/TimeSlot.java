@@ -1,18 +1,14 @@
-package com.emansy.employeeservice.model;
+package com.emansy.employeeservice.business.service.impl;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
-@Component
-public class TimeSlotDto {
+class TimeSlot {
 
     private LocalDate date;
 
