@@ -27,13 +27,11 @@ public class KafkaConsumer {
 
     private final EmployeeService employeeService;
 
-    // temporary - a stub for event-service:
+    // temporary - emulation of event-service:
     @KafkaListener(topics = "events-request", groupId = "event-group")
     @SendTo
     public Message<EventsDto> handleEventRequestStub(ConsumerRecord<String, EventIdsWithinDatesDto> consumerRecord) {
         Set<Long> eventIds = consumerRecord.value().getIds();
-        String fromDate = consumerRecord.value().getFromDate();
-        String thruDate = consumerRecord.value().getThruDate();
         EventsDto payload = new EventsDto(eventIds.stream()
                 .map(eventId -> new EventDto(
                         eventId, "Event", "Details", "2023-04-14", "10:00:00", "11:00:00"))

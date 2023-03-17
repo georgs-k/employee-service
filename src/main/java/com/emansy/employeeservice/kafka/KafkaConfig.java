@@ -18,7 +18,7 @@ import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 @Configuration
 public class KafkaConfig {
 
-    // temporary - a stub for event-service:
+    // temporary - emulation of event-service:
     @Bean
     public ReplyingKafkaTemplate<String, AttendeeIdsDto, EventDto> attendanceReplyingKafkaTemplate(
             ProducerFactory<String, AttendeeIdsDto> producerFactory,

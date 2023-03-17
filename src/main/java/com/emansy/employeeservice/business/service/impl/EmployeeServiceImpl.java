@@ -6,17 +6,13 @@ import com.emansy.employeeservice.business.repository.EventIdRepository;
 import com.emansy.employeeservice.business.repository.model.EmployeeEntity;
 import com.emansy.employeeservice.business.repository.model.EventIdEntity;
 import com.emansy.employeeservice.business.service.EmployeeService;
-import com.emansy.employeeservice.model.AttendeeIdsDto;
 import com.emansy.employeeservice.kafka.KafkaProducer;
 import com.emansy.employeeservice.model.EmployeeDto;
 import com.emansy.employeeservice.model.EventDto;
 import com.emansy.employeeservice.model.PublicHolidayDto;
 import com.emansy.employeeservice.resttemplate.PublicHolidayRestTemplate;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,8 +64,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private boolean isTimeSlotForEventChanged;
 
-    /* temporary */ private final ReplyingKafkaTemplate<String, AttendeeIdsDto, EventDto> replyingKafkaTemplate;
-
     @Override
     public List<EmployeeDto> findAll() {
         List<EmployeeEntity> employeeEntities = employeeRepository.findAll();
@@ -77,23 +71,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toList());
     }
 
-    @SneakyThrows
     @Override
     public Optional<EmployeeDto> findById(Long id) {
         Optional<EmployeeDto> employeeById = employeeRepository.findById(id)
                 .flatMap(employeeEntity -> Optional.ofNullable(employeeMapper.entityToDto(employeeEntity)));
         log.info("Employee with id {} is {}", id, employeeById);
-
-        // temporary, for manual testing:
-        Set<Long> attendeeIds = new HashSet<>();
-        attendeeIds.add(10L);
-        replyingKafkaTemplate.sendAndReceive(new ProducerRecord<>("attendance-request", new AttendeeIdsDto(
-                        true,
-                        attendeeIds,
-                        new EventDto(3L, "Event", "Details", "2023-04-18", "09:00:00", "10:00:00"))),
-                Duration.ofSeconds(10)).get().value();
-        // temporary - end
-
         return employeeById;
     }
 
@@ -150,7 +132,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         employeeRepository.findAllByIdIn(employeeIds)
                 .forEach(employeeEntity -> eventIds
                         .addAll(employeeEntity.getEventIdEntities().stream()
-                                .map(EventIdEntity::getId).collect(Collectors.toSet())));
+                                .map(EventIdEntity::getId)
+                                .collect(Collectors.toSet())));
         if (eventIds.isEmpty()) {
             log.warn("No attended events found for the employees with ids {}", employeeIds);
             return Collections.emptySet();
