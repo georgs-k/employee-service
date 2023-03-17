@@ -13,6 +13,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -29,8 +30,9 @@ public class KafkaProducer {
     public Set<EventDto> requestAndReceiveEvents(Set<Long> eventIds, String fromDate, String thruDate)
             throws ExecutionException, InterruptedException {
         ConsumerRecord<String, EventsDto> consumerRecord = eventsReplyingKafkaTemplate.sendAndReceive(
-                new ProducerRecord<>("events-request", new EventIdsWithinDatesDto(eventIds, fromDate, thruDate)))
-                .get();
+                new ProducerRecord<>("events-request", new EventIdsWithinDatesDto(eventIds, fromDate, thruDate)),
+                Duration.ofSeconds(10)
+        ).get();
         if (consumerRecord == null) {
             log.error("Something went wrong, no response from kafka topic: events-response");
             return Collections.emptySet();

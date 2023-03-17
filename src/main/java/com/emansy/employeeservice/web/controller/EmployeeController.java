@@ -160,7 +160,7 @@ public class EmployeeController {
     }
 
     @GetMapping("/{id}/{fromDate}/{thruDate}")
-    @ApiOperation(value = "Finds attended events by employee's id and a date interval",
+    @ApiOperation(value = "Finds attended events by an employee's id and a date interval",
             notes = "Provide employee's id, earliest date and latest date for the event",
             response = EventDto.class, responseContainer = "Set")
     @ApiResponses(value = {

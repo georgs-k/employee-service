@@ -86,12 +86,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // temporary, for manual testing:
         Set<Long> attendeeIds = new HashSet<>();
-        attendeeIds.add(3L);
+        attendeeIds.add(10L);
         replyingKafkaTemplate.sendAndReceive(new ProducerRecord<>("attendance-request", new AttendeeIdsDto(
-                true,
-                attendeeIds,
-                new EventDto(5L, "Event", "Details", "2023-04-14", "10:00:00", "12:30:00")
-            ))).get().value();
+                        true,
+                        attendeeIds,
+                        new EventDto(3L, "Event", "Details", "2023-04-18", "09:00:00", "10:00:00"))),
+                Duration.ofSeconds(10)).get().value();
         // temporary - end
 
         return employeeById;
@@ -152,7 +152,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                         .addAll(employeeEntity.getEventIdEntities().stream()
                                 .map(EventIdEntity::getId).collect(Collectors.toSet())));
         if (eventIds.isEmpty()) {
-            log.info("No attended events found for the employees with ids {}", employeeIds);
+            log.warn("No attended events found for the employees with ids {}", employeeIds);
             return Collections.emptySet();
         }
         Set<EventDto> eventDtos = kafkaProducer.requestAndReceiveEvents(eventIds, fromDate, thruDate);
@@ -170,18 +170,23 @@ public class EmployeeServiceImpl implements EmployeeService {
             log.warn("Employees with ids {} are not found", employeeIds);
             return eventDto;
         }
+        Set<EmployeeEntity> attendingEmployeeEntities = eventIdRepository.findById((eventDto.getId()))
+                .orElseGet(() -> eventIdRepository.save(new EventIdEntity(eventDto.getId(), new HashSet<>())))
+                .getEmployeeEntities();
+        employeeEntities.removeAll(attendingEmployeeEntities);
+        if (employeeEntities.isEmpty()) {
+            log.warn("Requested employees already attend the event with id: {}", eventDto.getId());
+            return eventDto;
+        }
+        attendingEmployeeEntities.addAll(employeeEntities);
+        Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream()
+                .map(EmployeeEntity::getId)
+                .collect(Collectors.toSet());
         timeSlotForEvent = new TimeSlot(
                 LocalDate.parse(eventDto.getDate()),
                 LocalTime.parse(eventDto.getStartTime()),
                 LocalTime.parse(eventDto.getEndTime())
         );
-        Set<EmployeeEntity> attendingEmployeeEntities = eventIdRepository.findById((eventDto.getId()))
-                .orElse(eventIdRepository.save(new EventIdEntity(eventDto.getId(), new HashSet<>())))
-                .getEmployeeEntities();
-        attendingEmployeeEntities.addAll(employeeEntities);
-        Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream()
-                .map(EmployeeEntity::getId)
-                .collect(Collectors.toSet());
         unavailableTimeSlots = findAttendedEventsBetween(attendingEmployeeIds, String.valueOf(LocalDate.now()), "").stream()
                 .map(attendedEvent -> new TimeSlot(
                         LocalDate.parse(attendedEvent.getDate()),
