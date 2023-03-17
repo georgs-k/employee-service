@@ -2,7 +2,9 @@ package com.emansy.employeeservice.business.service.impl;
 
 import com.emansy.employeeservice.business.mappers.EmployeeMapper;
 import com.emansy.employeeservice.business.repository.EmployeeRepository;
+import com.emansy.employeeservice.business.repository.EventIdRepository;
 import com.emansy.employeeservice.business.repository.model.EmployeeEntity;
+import com.emansy.employeeservice.business.repository.model.EventIdEntity;
 import com.emansy.employeeservice.business.repository.model.JobTitleEntity;
 import com.emansy.employeeservice.business.repository.model.OfficeEntity;
 import com.emansy.employeeservice.model.EmployeeDto;
@@ -37,19 +39,24 @@ public class EmployeeServiceTest {
     private EntityManager entityManager;
 
     @Mock
-    private EmployeeRepository repository;
+    private EventIdRepository eventIdRepository;
 
     @Mock
-    private EmployeeMapper mapper;
+    private EmployeeRepository employeeRepository;
+
+    @Mock
+    private EmployeeMapper employeeMapper;
 
     @InjectMocks
-    private EmployeeServiceImpl service;
+    private EmployeeServiceImpl employeeService;
 
     private EmployeeDto employeeDto;
 
     private EmployeeEntity employeeEntity;
 
     private List<EmployeeEntity> employeeEntities;
+
+    private EventIdEntity eventIdEntity;
 
     @BeforeEach
     public void init() {
@@ -62,56 +69,56 @@ public class EmployeeServiceTest {
 
     @Test
     void findAllTestPositive() {
-        when(repository.findAll()).thenReturn(employeeEntities);
-        when(mapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
-        assertEquals(2, service.findAll().size());
-        verify(repository, times(1)).findAll();
-        verify(mapper, times(2)).entityToDto(employeeEntity);
+        when(employeeRepository.findAll()).thenReturn(employeeEntities);
+        when(employeeMapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
+        assertEquals(2, employeeService.findAll().size());
+        verify(employeeRepository, times(1)).findAll();
+        verify(employeeMapper, times(2)).entityToDto(employeeEntity);
     }
 
     @Test
     void findAllTestNegative() {
-        when(repository.findAll()).thenReturn(Collections.emptyList());
-        assertTrue(service.findAll().isEmpty());
-        verify(repository, times(1)).findAll();
+        when(employeeRepository.findAll()).thenReturn(Collections.emptyList());
+        assertTrue(employeeService.findAll().isEmpty());
+        verify(employeeRepository, times(1)).findAll();
     }
 
     @Test
     void findByIdTestPositive() {
-        when(repository.findById(anyLong())).thenReturn(Optional.of(employeeEntity));
-        when(mapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
-        assertEquals(employeeDto, service.findById(employeeDto.getId()).get());
-        verify(repository, times(1)).findById(employeeDto.getId());
-        verify(mapper, times(1)).entityToDto(employeeEntity);
+        when(employeeRepository.findById(anyLong())).thenReturn(Optional.of(employeeEntity));
+        when(employeeMapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
+        assertEquals(employeeDto, employeeService.findById(employeeDto.getId()).get());
+        verify(employeeRepository, times(1)).findById(employeeDto.getId());
+        verify(employeeMapper, times(1)).entityToDto(employeeEntity);
     }
 
     @Test
     void findByIdTestNegative() {
-        when(repository.findById(anyLong())).thenReturn(Optional.empty());
-        assertFalse(service.findById(employeeDto.getId()).isPresent());
-        verify(repository, times(1)).findById(employeeDto.getId());
+        when(employeeRepository.findById(anyLong())).thenReturn(Optional.empty());
+        assertFalse(employeeService.findById(employeeDto.getId()).isPresent());
+        verify(employeeRepository, times(1)).findById(employeeDto.getId());
     }
 
     @Test
     void saveTest() {
-        when(mapper.dtoToEntity(employeeDto)).thenReturn(employeeEntity);
-        when(repository.save(employeeEntity)).thenReturn(employeeEntity);
-        when(mapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
-        assertEquals(employeeDto, service.save(employeeDto));
-        verify(mapper, times(1)).dtoToEntity(employeeDto);
-        verify(repository, times(1)).save(employeeEntity);
-        verify(mapper, times(1)).entityToDto(employeeEntity);
+        when(employeeMapper.dtoToEntity(employeeDto)).thenReturn(employeeEntity);
+        when(employeeRepository.save(employeeEntity)).thenReturn(employeeEntity);
+        when(employeeMapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
+        assertEquals(employeeDto, employeeService.save(employeeDto));
+        verify(employeeMapper, times(1)).dtoToEntity(employeeDto);
+        verify(employeeRepository, times(1)).save(employeeEntity);
+        verify(employeeMapper, times(1)).entityToDto(employeeEntity);
     }
 
     @Test
     void updateTestPositive() {
-        when(mapper.dtoToEntity(employeeDto)).thenReturn(employeeEntity);
-        when(repository.save(employeeEntity)).thenReturn(employeeEntity);
-        when(mapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
-        assertEquals(employeeDto, service.update(employeeDto));
-        verify(mapper, times(1)).dtoToEntity(employeeDto);
-        verify(repository, times(1)).save(employeeEntity);
-        verify(mapper, times(1)).entityToDto(employeeEntity);
+        when(employeeMapper.dtoToEntity(employeeDto)).thenReturn(employeeEntity);
+        when(employeeRepository.save(employeeEntity)).thenReturn(employeeEntity);
+        when(employeeMapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
+        assertEquals(employeeDto, employeeService.update(employeeDto));
+        verify(employeeMapper, times(1)).dtoToEntity(employeeDto);
+        verify(employeeRepository, times(1)).save(employeeEntity);
+        verify(employeeMapper, times(1)).entityToDto(employeeEntity);
     }
 
     @Test
@@ -120,33 +127,33 @@ public class EmployeeServiceTest {
                 "email@email.com", "+37100000000", "09:00:00", "18:00:00");
         EmployeeDto employeeDtoSaved = createEmployeeDto(2L, "First name", "Last name",
                 "email@email.com", "+37100000000", "09:00:00", "18:00:00");
-        when(mapper.dtoToEntity(employeeDto)).thenReturn(employeeEntity);
-        when(repository.save(employeeEntity)).thenReturn(employeeEntitySaved);
-        when(mapper.entityToDto(employeeEntitySaved)).thenReturn(employeeDtoSaved);
-        assertNotEquals(employeeDto.getId(), service.update(employeeDto).getId());
-        verify(mapper, times(1)).dtoToEntity(employeeDto);
-        verify(repository, times(1)).save(employeeEntity);
-        verify(mapper, times(1)).entityToDto(employeeEntitySaved);
+        when(employeeMapper.dtoToEntity(employeeDto)).thenReturn(employeeEntity);
+        when(employeeRepository.save(employeeEntity)).thenReturn(employeeEntitySaved);
+        when(employeeMapper.entityToDto(employeeEntitySaved)).thenReturn(employeeDtoSaved);
+        assertNotEquals(employeeDto.getId(), employeeService.update(employeeDto).getId());
+        verify(employeeMapper, times(1)).dtoToEntity(employeeDto);
+        verify(employeeRepository, times(1)).save(employeeEntity);
+        verify(employeeMapper, times(1)).entityToDto(employeeEntitySaved);
     }
 
     @Test
     void deleteByIdTest() {
-        service.deleteById(anyLong());
-        verify(repository, times(1)).deleteById(anyLong());
+        employeeService.deleteById(anyLong());
+        verify(employeeRepository, times(1)).deleteById(anyLong());
     }
 
     @Test
     void existsByIdTestPositive() {
-        when(repository.existsById(anyLong())).thenReturn(true);
-        assertTrue(service.existsById(anyLong()));
-        verify(repository, times(1)).existsById(anyLong());
+        when(employeeRepository.existsById(anyLong())).thenReturn(true);
+        assertTrue(employeeService.existsById(anyLong()));
+        verify(employeeRepository, times(1)).existsById(anyLong());
     }
 
     @Test
     void existsByIdTestNegative() {
-        when(repository.existsById(anyLong())).thenReturn(false);
-        assertFalse(service.existsById(anyLong()));
-        verify(repository, times(1)).existsById(anyLong());
+        when(employeeRepository.existsById(anyLong())).thenReturn(false);
+        assertFalse(employeeService.existsById(anyLong()));
+        verify(employeeRepository, times(1)).existsById(anyLong());
     }
 
     private EmployeeDto createEmployeeDto(Long id, String firstName, String lastName, String email,
