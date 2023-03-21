@@ -139,9 +139,11 @@ public class EmployeeServiceImpl implements EmployeeService {
             return Collections.emptySet();
         }
         Set<EventDto> eventDtos = kafkaProducer.requestAndReceiveEvents(eventIds, fromDate, thruDate);
-        if (thruDate.isEmpty()) log.info("Found {} future events for the employees with ids {}",
-                eventDtos.size(), employeeIds);
-        else log.info("Found {} events, scheduled between {} and {}, for the employees with ids {}",
+        if (thruDate.isEmpty()) {
+            log.info("Found {} future events for the employees with ids {}", eventDtos.size(), employeeIds);
+            return eventDtos;
+        }
+        log.info("Found {} events, scheduled between {} and {}, for the employees with ids {}",
                 eventDtos.size(), fromDate, thruDate, employeeIds);
         return eventDtos;
     }

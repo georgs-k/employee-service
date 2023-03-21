@@ -90,8 +90,7 @@ public class EmployeeControllerTest {
     void saveEmployeeTestPositive() throws Exception {
         EmployeeDto employeeDto = createEmployeeDto();
         when(service.save(employeeDto)).thenReturn(employeeDto);
-        mockMvc.perform(MockMvcRequestBuilders
-                        .post(URL)
+        mockMvc.perform(MockMvcRequestBuilders.post(URL)
                         .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -106,8 +105,7 @@ public class EmployeeControllerTest {
     void saveEmployeeTestNegative() throws Exception {
         EmployeeDto employeeDto = createEmployeeDto();
         employeeDto.setFirstName("");
-        mockMvc.perform(MockMvcRequestBuilders
-                        .post(URL)
+        mockMvc.perform(MockMvcRequestBuilders.post(URL)
                         .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -120,8 +118,7 @@ public class EmployeeControllerTest {
         EmployeeDto employeeDto = createEmployeeDto();
         when(service.existsById(anyLong())).thenReturn(true);
         when(service.update(employeeDto)).thenReturn(employeeDto);
-        mockMvc.perform(MockMvcRequestBuilders
-                        .put(URL)
+        mockMvc.perform(MockMvcRequestBuilders.put(URL)
                         .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -137,8 +134,7 @@ public class EmployeeControllerTest {
     void updateEmployeeTestNegativeBadRequest() throws Exception {
         EmployeeDto employeeDto = createEmployeeDto();
         employeeDto.setFirstName("");
-        mockMvc.perform(MockMvcRequestBuilders
-                        .put(URL)
+        mockMvc.perform(MockMvcRequestBuilders.put(URL)
                         .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -151,8 +147,7 @@ public class EmployeeControllerTest {
     void updateEmployeeTestNegativeNotFound() throws Exception {
         EmployeeDto employeeDto = createEmployeeDto();
         when(service.existsById(anyLong())).thenReturn(false);
-        mockMvc.perform(MockMvcRequestBuilders
-                        .put(URL)
+        mockMvc.perform(MockMvcRequestBuilders.put(URL)
                         .content(objectMapper.writeValueAsString(employeeDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -209,8 +204,7 @@ public class EmployeeControllerTest {
         EventDto eventDto = createEventDto();
         when(service.existsById(anyLong())).thenReturn(true);
         when(service.unattendEvent(anySet(), any())).thenReturn(eventDto);
-        mockMvc.perform(MockMvcRequestBuilders
-                        .patch(URL + "/1")
+        mockMvc.perform(MockMvcRequestBuilders.patch(URL + "/1")
                         .content(objectMapper.writeValueAsString(eventDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -223,8 +217,7 @@ public class EmployeeControllerTest {
     void unattendTestNegativeBadRequest() throws Exception {
         EventDto eventDto = createEventDto();
         eventDto.setTitle("");
-        mockMvc.perform(MockMvcRequestBuilders
-                        .patch(URL + "/1")
+        mockMvc.perform(MockMvcRequestBuilders.patch(URL + "/1")
                         .content(objectMapper.writeValueAsString(eventDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -237,8 +230,7 @@ public class EmployeeControllerTest {
     void unattendTestNegativeNotFound() throws Exception {
         EventDto eventDto = createEventDto();
         when(service.existsById(anyLong())).thenReturn(false);
-        mockMvc.perform(MockMvcRequestBuilders
-                        .patch(URL + "/1")
+        mockMvc.perform(MockMvcRequestBuilders.patch(URL + "/1")
                         .content(objectMapper.writeValueAsString(eventDto))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
