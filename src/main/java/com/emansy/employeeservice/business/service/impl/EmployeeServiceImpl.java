@@ -21,6 +21,7 @@ import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -155,7 +156,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             log.warn("Employees with ids {} are not found", employeeIds);
             return eventDto;
         }
-        Set<EmployeeEntity> attendingEmployeeEntities = eventIdRepository.findById((eventDto.getId()))
+        Set<EmployeeEntity> attendingEmployeeEntities = eventIdRepository.findById(eventDto.getId())
                 .orElseGet(() -> eventIdRepository.save(new EventIdEntity(eventDto.getId(), new HashSet<>())))
                 .getEmployeeEntities();
         employeeEntities.removeAll(attendingEmployeeEntities);
@@ -212,8 +213,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (isTimeSlotForEventChanged) {
             attendingEmployeeEntities.removeAll(employeeEntities);
             eventDto.setDate(String.valueOf(timeSlotForEvent.getDate()));
-            eventDto.setStartTime(String.valueOf(timeSlotForEvent.getStartTime()));
-            eventDto.setEndTime(String.valueOf(timeSlotForEvent.getEndTime()));
+            eventDto.setStartTime(DateTimeFormatter.ISO_LOCAL_TIME.format(timeSlotForEvent.getStartTime()));
+            eventDto.setEndTime(DateTimeFormatter.ISO_LOCAL_TIME.format(timeSlotForEvent.getEndTime()));
             log.info("Requested event is not available for all attending employees. Rescheduled event is offered: {}",
                     eventDto);
             return eventDto;
@@ -223,7 +224,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet()),
                 eventDto
         );
-        log.info("{} employees attendance of the event with id {} is scheduled",
+        log.info("{} employees attendance of the event with id {} is set up",
                 employeeEntities.size(), eventDto.getId());
         return eventDto;
     }

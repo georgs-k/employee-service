@@ -84,11 +84,18 @@ public class EmployeeServiceTest {
 
     private Set<EventIdEntity> eventIdEntities;
 
+    private Set<Long> employeeIds;
+
     private EventDto eventDto;
 
     private EventDto anotherEventDto;
 
     private Set<EventDto> eventDtos;
+
+    private final PublicHolidayDto[] publicHolidayDtos = {
+            new PublicHolidayDto("2023-12-31"),
+            new PublicHolidayDto("2024-01-01")
+    };
 
     @BeforeEach
     public void init() {
@@ -101,6 +108,17 @@ public class EmployeeServiceTest {
         anotherEmployeeEntity = createEmployeeEntity(2L, "First name", "Last name", "email@email.com",
                 "+37100000000", "10:00:00", "18:00:00");
         employeeEntities = createEmployeeEntities(employeeEntity, anotherEmployeeEntity);
+        eventIdEntity = createEventIdEntity(1L, employeeEntities);
+        anotherEventIdEntity = createEventIdEntity(2L, employeeEntities);
+        eventIdEntities = createEventIdEntities(eventIdEntity, anotherEventIdEntity);
+        employeeEntity.setEventIdEntities(eventIdEntities);
+        anotherEmployeeEntity.setEventIdEntities(eventIdEntities);
+        employeeIds = createEmployeeIds(1L, 2L);
+        eventDto = createEventDto(
+                1L, "Title", "Details", "2023-12-29", "12:00:00", "13:00:00");
+        anotherEventDto = createEventDto(
+                2L, "Title", "Details", "2023-12-29", "15:00:00", "16:00:00");
+        eventDtos = createEventDtos(eventDto, anotherEventDto);
     }
 
     @Test
@@ -201,7 +219,6 @@ public class EmployeeServiceTest {
 
     @Test
     void findAttendingEmployeesTestPositive() {
-        eventIdEntity = new EventIdEntity(1L, employeeEntities);
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
         when(employeeMapper.entityToDto(employeeEntity)).thenReturn(employeeDto);
         when(employeeMapper.entityToDto(anotherEmployeeEntity)).thenReturn(anotherEmployeeDto);
@@ -235,7 +252,6 @@ public class EmployeeServiceTest {
 
     @Test
     void findNonAttendingEmployeesTestNegative() {
-        eventIdEntity = new EventIdEntity(1L, employeeEntities);
         when(employeeRepository.findAll()).thenReturn(Arrays.asList(employeeEntity, anotherEmployeeEntity));
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
         assertTrue(employeeService.findNonAttendingEmployees(1L).isEmpty());
@@ -247,25 +263,10 @@ public class EmployeeServiceTest {
 
     @Test
     void findAttendedEventsBetweenTestPositive() throws ExecutionException, InterruptedException {
-        eventIdEntities = new HashSet<>();
-        eventIdEntity = new EventIdEntity(1L, employeeEntities);
-        anotherEventIdEntity = new EventIdEntity(2L, employeeEntities);
-        eventIdEntities.add(eventIdEntity);
-        eventIdEntities.add(anotherEventIdEntity);
-        employeeEntity.setEventIdEntities(eventIdEntities);
-        anotherEmployeeEntity.setEventIdEntities(eventIdEntities);
-        eventDto = createEventDto(
-                1L, "Title", "Details", "2024-01-02", "12:00:00", "13:00:00");
-        anotherEventDto = createEventDto(
-                2L, "Title", "Details", "2024-01-02", "15:00:00", "16:00:00");
-        eventDtos = createEventDtos(eventDto, anotherEventDto);
-        Set<Long> eventIds = new HashSet<>();
-        eventIds.add(1L);
-        eventIds.add(2L);
         when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
         when(kafkaProducer.requestAndReceiveEvents(anySet(), anyString(), anyString())).thenReturn(eventDtos);
-        assertEquals(2, employeeService.findAttendedEventsBetween(eventIds, "2023-03-21", "").size());
-        assertEquals(2, employeeService.findAttendedEventsBetween(eventIds, "2023-03-21", "2030-01-01").size());
+        assertEquals(2, employeeService.findAttendedEventsBetween(employeeIds, "2023-03-21", "").size());
+        assertEquals(2, employeeService.findAttendedEventsBetween(employeeIds, "2023-03-21", "2030-01-01").size());
         verify(employeeRepository, times(2)).findAllByIdIn(anySet());
         verify(kafkaProducer, times(2)).requestAndReceiveEvents(anySet(), anyString(), anyString());
     }
@@ -274,57 +275,144 @@ public class EmployeeServiceTest {
     void findAttendedEventsBetweenTestNegative() throws ExecutionException, InterruptedException {
         employeeEntity.setEventIdEntities(Collections.emptySet());
         anotherEmployeeEntity.setEventIdEntities(Collections.emptySet());
-        Set<Long> eventIds = Collections.emptySet();
         when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
-        assertTrue(employeeService.findAttendedEventsBetween(eventIds, "2023-03-21", "").isEmpty());
-        assertTrue(employeeService.findAttendedEventsBetween(eventIds, "2023-03-21", "2030-01-01").isEmpty());
+        assertTrue(employeeService.findAttendedEventsBetween(employeeIds, "2023-03-21", "").isEmpty());
+        assertTrue(employeeService.findAttendedEventsBetween(employeeIds, "2023-03-21", "2030-01-01").isEmpty());
         verify(employeeRepository, times(2)).findAllByIdIn(anySet());
         verify(kafkaProducer, times(0)).requestAndReceiveEvents(anySet(), anyString(), anyString());
     }
 
     @Test
     void attendEventTestPositive() throws ExecutionException, InterruptedException {
-        eventIdEntities = new HashSet<>();
-        eventIdEntity = new EventIdEntity(1L, employeeEntities);
-        anotherEventIdEntity = new EventIdEntity(2L, employeeEntities);
-        eventIdEntities.add(eventIdEntity);
-        eventIdEntities.add(anotherEventIdEntity);
-        employeeEntity.setEventIdEntities(eventIdEntities);
-        anotherEmployeeEntity.setEventIdEntities(eventIdEntities);
-        eventDto = createEventDto(
-                1L, "Title", "Details", "2024-01-02", "12:00:00", "13:00:00");
-        anotherEventDto = createEventDto(
-                2L, "Title", "Details", "2024-01-02", "15:00:00", "16:00:00");
-        eventDtos = createEventDtos(eventDto, anotherEventDto);
-        EventDto eventDtoForAttending = createEventDto(
-                3L, "Title", "Details", "2024-01-02", "13:00:00", "15:00:00");
-        Set<Long> employeeIds = new HashSet<>();
-        employeeIds.add(3L);
-        employeeIds.add(4L);
-        PublicHolidayDto[] publicHolidayDtos = {new PublicHolidayDto("2023-12-31"), new PublicHolidayDto("2024-01-01")};
         when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
-        when(kafkaProducer.requestAndReceiveEvents(anySet(), anyString(), anyString())).thenReturn(eventDtos);
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.empty());
-        when(eventIdRepository.save(any(EventIdEntity.class))).thenReturn(new EventIdEntity(1L, new HashSet<>()));
+        when(eventIdRepository.save(any(EventIdEntity.class))).thenReturn(createEventIdEntity(1L, new HashSet<>()));
+        when(kafkaProducer.requestAndReceiveEvents(anySet(), anyString(), anyString())).thenReturn(eventDtos);
         when(publicHolidayRestTemplate.getForObject(
                 "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class)).thenReturn(publicHolidayDtos);
-        assertEquals(eventDtoForAttending, employeeService.attendEvent(employeeIds, eventDtoForAttending));
+        EventDto eventDtoRequested = createEventDto(
+                3L, "Title", "Details", "2023-12-29", "13:00:00", "15:00:00");
+        EventDto eventDtoScheduled = employeeService.attendEvent(employeeIds, eventDtoRequested);
+        assertEquals(eventDtoRequested.getDate(), eventDtoScheduled.getDate());
+        assertEquals(eventDtoRequested.getStartTime(), eventDtoScheduled.getStartTime());
+        assertEquals(eventDtoRequested.getEndTime(), eventDtoScheduled.getEndTime());
         verify(employeeRepository, times(2)).findAllByIdIn(anySet());
-        verify(kafkaProducer, times(1)).requestAndReceiveEvents(anySet(), anyString(), anyString());
         verify(eventIdRepository, times(1)).findById(anyLong());
         verify(eventIdRepository, times(1)).save(any(EventIdEntity.class));
+        verify(kafkaProducer, times(1)).requestAndReceiveEvents(anySet(), anyString(), anyString());
         verify(publicHolidayRestTemplate, times(1)).getForObject(
                 "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class);
         verify(kafkaProducer, times(1)).sendAttendanceNotification(anyBoolean(), anySet(), any(EventDto.class));
     }
 
     @Test
+    void attendEventTestNegativeNoEmployeesFound() throws ExecutionException, InterruptedException {
+        when(employeeRepository.findAllByIdIn(anySet())).thenReturn(Collections.emptySet());
+        EventDto eventDtoRequested = createEventDto(
+                3L, "Title", "Details", "2023-12-29", "13:00:00", "15:00:00");
+        EventDto eventDtoScheduled = employeeService.attendEvent(employeeIds, eventDtoRequested);
+        assertEquals(eventDtoRequested.getDate(), eventDtoScheduled.getDate());
+        assertEquals(eventDtoRequested.getStartTime(), eventDtoScheduled.getStartTime());
+        assertEquals(eventDtoRequested.getEndTime(), eventDtoScheduled.getEndTime());
+        verify(employeeRepository, times(1)).findAllByIdIn(anySet());
+        verify(eventIdRepository, times(0)).findById(anyLong());
+        verify(eventIdRepository, times(0)).save(any(EventIdEntity.class));
+        verify(kafkaProducer, times(0)).requestAndReceiveEvents(anySet(), anyString(), anyString());
+        verify(publicHolidayRestTemplate, times(0)).getForObject(
+                "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class);
+        verify(kafkaProducer, times(0)).sendAttendanceNotification(anyBoolean(), anySet(), any(EventDto.class));
+    }
+
+    @Test
+    void attendEventTestNegativeAllRequestedEmployeesAlreadyAttending() throws ExecutionException, InterruptedException {
+        when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
+        when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
+        EventDto eventDtoRequested = createEventDto(
+                3L, "Title", "Details", "2023-12-29", "13:00:00", "15:00:00");
+        EventDto eventDtoScheduled = employeeService.attendEvent(employeeIds, eventDtoRequested);
+        assertEquals(eventDtoRequested.getDate(), eventDtoScheduled.getDate());
+        assertEquals(eventDtoRequested.getStartTime(), eventDtoScheduled.getStartTime());
+        assertEquals(eventDtoRequested.getEndTime(), eventDtoScheduled.getEndTime());
+        verify(employeeRepository, times(1)).findAllByIdIn(anySet());
+        verify(eventIdRepository, times(1)).findById(anyLong());
+        verify(eventIdRepository, times(0)).save(any(EventIdEntity.class));
+        verify(kafkaProducer, times(0)).requestAndReceiveEvents(anySet(), anyString(), anyString());
+        verify(publicHolidayRestTemplate, times(0)).getForObject(
+                "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class);
+        verify(kafkaProducer, times(0)).sendAttendanceNotification(anyBoolean(), anySet(), any(EventDto.class));
+    }
+
+    @Test
+    void attendEventTestShortenEvent() throws ExecutionException, InterruptedException {
+        when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
+        when(eventIdRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(eventIdRepository.save(any(EventIdEntity.class))).thenReturn(new EventIdEntity(1L, new HashSet<>()));
+        when(kafkaProducer.requestAndReceiveEvents(anySet(), anyString(), anyString())).thenReturn(eventDtos);
+        when(publicHolidayRestTemplate.getForObject(
+                "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class)).thenReturn(publicHolidayDtos);
+        EventDto eventDtoRequested = createEventDto(
+                3L, "Title", "Details", "2023-12-28", "10:00:00", "18:00:00");
+        EventDto eventDtoScheduled = employeeService.attendEvent(employeeIds, eventDtoRequested);
+        assertEquals(eventDtoRequested.getDate(), eventDtoScheduled.getDate());
+        assertEquals(eventDtoRequested.getStartTime(), eventDtoScheduled.getStartTime());
+        assertEquals("17:00:00", eventDtoScheduled.getEndTime());
+        verify(employeeRepository, times(2)).findAllByIdIn(anySet());
+        verify(eventIdRepository, times(1)).findById(anyLong());
+        verify(eventIdRepository, times(1)).save(any(EventIdEntity.class));
+        verify(kafkaProducer, times(1)).requestAndReceiveEvents(anySet(), anyString(), anyString());
+        verify(publicHolidayRestTemplate, times(1)).getForObject(
+                "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class);
+        verify(kafkaProducer, times(0)).sendAttendanceNotification(anyBoolean(), anySet(), any(EventDto.class));
+    }
+
+    @Test
+    void attendEventTestRescheduleToSameDayLater() throws ExecutionException, InterruptedException {
+        when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
+        when(eventIdRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(eventIdRepository.save(any(EventIdEntity.class))).thenReturn(new EventIdEntity(1L, new HashSet<>()));
+        when(kafkaProducer.requestAndReceiveEvents(anySet(), anyString(), anyString())).thenReturn(eventDtos);
+        when(publicHolidayRestTemplate.getForObject(
+                "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class)).thenReturn(publicHolidayDtos);
+        EventDto eventDtoRequested = createEventDto(
+                3L, "Title", "Details", "2023-12-29", "11:00:00", "13:00:00");
+        EventDto eventDtoScheduled = employeeService.attendEvent(employeeIds, eventDtoRequested);
+        assertEquals(eventDtoRequested.getDate(), eventDtoScheduled.getDate());
+        assertEquals("13:00:00", eventDtoScheduled.getStartTime());
+        assertEquals("15:00:00", eventDtoScheduled.getEndTime());
+        verify(employeeRepository, times(2)).findAllByIdIn(anySet());
+        verify(eventIdRepository, times(1)).findById(anyLong());
+        verify(eventIdRepository, times(1)).save(any(EventIdEntity.class));
+        verify(kafkaProducer, times(1)).requestAndReceiveEvents(anySet(), anyString(), anyString());
+        verify(publicHolidayRestTemplate, times(1)).getForObject(
+                "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class);
+        verify(kafkaProducer, times(0)).sendAttendanceNotification(anyBoolean(), anySet(), any(EventDto.class));
+    }
+
+    @Test
+    void attendEventTestRescheduleToSameDayLaterThenToNextMorning() throws ExecutionException, InterruptedException {
+        when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
+        when(eventIdRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(eventIdRepository.save(any(EventIdEntity.class))).thenReturn(new EventIdEntity(1L, new HashSet<>()));
+        when(kafkaProducer.requestAndReceiveEvents(anySet(), anyString(), anyString())).thenReturn(eventDtos);
+        when(publicHolidayRestTemplate.getForObject(
+                "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class)).thenReturn(publicHolidayDtos);
+        EventDto eventDtoRequested = createEventDto(
+                3L, "Title", "Details", "2023-12-29", "15:00:00", "17:00:00");
+        EventDto eventDtoScheduled = employeeService.attendEvent(employeeIds, eventDtoRequested);
+        assertEquals("2024-01-02", eventDtoScheduled.getDate());
+        assertEquals("10:00:00", eventDtoScheduled.getStartTime());
+        assertEquals("12:00:00", eventDtoScheduled.getEndTime());
+        verify(employeeRepository, times(2)).findAllByIdIn(anySet());
+        verify(eventIdRepository, times(1)).findById(anyLong());
+        verify(eventIdRepository, times(1)).save(any(EventIdEntity.class));
+        verify(kafkaProducer, times(1)).requestAndReceiveEvents(anySet(), anyString(), anyString());
+        verify(publicHolidayRestTemplate, times(1)).getForObject(
+                "https://date.nager.at/api/v3/NextPublicHolidays/LV", PublicHolidayDto[].class);
+        verify(kafkaProducer, times(0)).sendAttendanceNotification(anyBoolean(), anySet(), any(EventDto.class));
+    }
+
+    @Test
     void unattendEventTestPositive() {
-        eventIdEntity = new EventIdEntity(1L, employeeEntities);
-        Set<Long> employeeIds = new HashSet<>();
-        employeeIds.add(1L);
-        employeeIds.add(2L);
-        eventDto = createEventDto(1L, "Title", "Details", "2024-01-02", "12:00:00", "14:00:00");
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
         when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
         assertEquals(eventDto, employeeService.unattendEvent(employeeIds, eventDto));
@@ -335,10 +423,6 @@ public class EmployeeServiceTest {
 
     @Test
     void unattendEventTestNegativeNoEventId() {
-        Set<Long> employeeIds = new HashSet<>();
-        employeeIds.add(1L);
-        employeeIds.add(2L);
-        eventDto = createEventDto(1L, "Title", "Details", "2024-01-02", "12:00:00", "14:00:00");
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.empty());
         assertEquals(eventDto, employeeService.unattendEvent(employeeIds, eventDto));
         verify(eventIdRepository, times(1)).findById(anyLong());
@@ -348,11 +432,7 @@ public class EmployeeServiceTest {
 
     @Test
     void unattendEventTestNegativeNoAttendingEmployees() {
-        eventIdEntity = new EventIdEntity(1L, Collections.emptySet());
-        Set<Long> employeeIds = new HashSet<>();
-        employeeIds.add(1L);
-        employeeIds.add(2L);
-        eventDto = createEventDto(1L, "Title", "Details", "2024-01-02", "12:00:00", "14:00:00");
+        eventIdEntity.setEmployeeEntities(Collections.emptySet());
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
         when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
         assertEquals(eventDto, employeeService.unattendEvent(employeeIds, eventDto));
@@ -363,11 +443,7 @@ public class EmployeeServiceTest {
 
     @Test
     void unattendEventTestNegativeWrongAttendingEmployees() {
-        eventIdEntity = new EventIdEntity(1L, employeeEntities);
-        Set<Long> employeeIds = new HashSet<>();
-        employeeIds.add(3L);
-        employeeIds.add(4L);
-        eventDto = createEventDto(1L, "Title", "Details", "2024-01-02", "12:00:00", "14:00:00");
+        employeeIds = createEmployeeIds(3L, 4L);
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
         when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
         assertEquals(eventDto, employeeService.unattendEvent(employeeIds, eventDto));
@@ -378,8 +454,6 @@ public class EmployeeServiceTest {
 
     @Test
     void unattendAndDeleteEventTestPositive() {
-        eventIdEntity = new EventIdEntity(1L, employeeEntities);
-        eventDto = createEventDto(1L, "Title", "Details", "2024-01-02", "12:00:00", "14:00:00");
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
         assertEquals(eventDto, employeeService.unattendAndDeleteEvent(eventDto));
         verify(eventIdRepository, times(1)).findById(anyLong());
@@ -389,7 +463,6 @@ public class EmployeeServiceTest {
 
     @Test
     void unattendAndDeleteEventTestNegativeNoEventId() {
-        eventDto = createEventDto(1L, "Title", "Details", "2024-01-02", "12:00:00", "14:00:00");
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.empty());
         assertEquals(eventDto, employeeService.unattendAndDeleteEvent(eventDto));
         verify(eventIdRepository, times(1)).findById(anyLong());
@@ -399,8 +472,7 @@ public class EmployeeServiceTest {
 
     @Test
     void unattendAndDeleteEventTestNegativeNoAttendingEmployees() {
-        eventIdEntity = new EventIdEntity(1L, Collections.emptySet());
-        eventDto = createEventDto(1L, "Title", "Details", "2024-01-02", "12:00:00", "14:00:00");
+        eventIdEntity.setEmployeeEntities(Collections.emptySet());
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
         assertEquals(eventDto, employeeService.unattendAndDeleteEvent(eventDto));
         verify(eventIdRepository, times(1)).findById(anyLong());
@@ -433,7 +505,7 @@ public class EmployeeServiceTest {
         employeeEntity.setLastName(lastName);
         employeeEntity.setEmail(email);
         employeeEntity.setPhone(phone);
-        employeeEntity.setJobTitleEntity((new JobTitleEntity()));
+        employeeEntity.setJobTitleEntity(new JobTitleEntity());
         employeeEntity.setOfficeEntity(officeEntity);
         officeEntity.setCountryEntity(countryEntity);
         countryEntity.setCode("LV");
@@ -447,6 +519,27 @@ public class EmployeeServiceTest {
         employeeEntities.add(employeeEntity);
         employeeEntities.add(anotherEmployeeEntity);
         return employeeEntities;
+    }
+
+    private EventIdEntity createEventIdEntity(Long id, Set<EmployeeEntity> employeeEntities) {
+        EventIdEntity eventIdEntity = new EventIdEntity();
+        eventIdEntity.setId(id);
+        eventIdEntity.setEmployeeEntities(employeeEntities);
+        return eventIdEntity;
+    }
+
+    private Set<EventIdEntity> createEventIdEntities(EventIdEntity eventIdEntity, EventIdEntity anotherEventIdEntity) {
+        Set<EventIdEntity> eventIdEntities = new HashSet<>();
+        eventIdEntities.add(eventIdEntity);
+        eventIdEntities.add(anotherEventIdEntity);
+        return eventIdEntities;
+    }
+
+    private Set<Long> createEmployeeIds(Long id1, Long id2) {
+        Set<Long> employeeIds = new HashSet<>();
+        employeeIds.add(id1);
+        employeeIds.add(id2);
+        return employeeIds;
     }
 
     private EventDto createEventDto(Long id, String title, String details, String date, String startTime, String endTime) {
