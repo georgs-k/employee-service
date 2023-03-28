@@ -53,6 +53,10 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final String PUBLIC_HOLIDAY_URL = "https://date.nager.at/api/v3/NextPublicHolidays/";
 
+    private Set<EmployeeEntity> employeeEntities;
+
+    private Set<EmployeeEntity> attendingEmployeeEntities;
+
     private TimeSlot timeSlotForEvent;
 
     private Set<TimeSlot> unavailableTimeSlots;
@@ -110,16 +114,16 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public Set<EmployeeDto> findAttendingEmployees(Long eventId) {
-        Set<EmployeeEntity> employeeEntities = new HashSet<>();
+        employeeEntities = new HashSet<>();
         Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventId);
-        if (eventIdEntity.isPresent()) employeeEntities = eventIdEntity.get().getEmployeeEntities();
+        eventIdEntity.ifPresent(idEntity -> employeeEntities = idEntity.getEmployeeEntities());
         log.info("Found {} employees attending event with id {}", employeeEntities.size(), eventId);
         return employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet());
     }
 
     @Override
     public Set<EmployeeDto> findNonAttendingEmployees(Long eventId) {
-        Set<EmployeeEntity> employeeEntities = new HashSet<>(employeeRepository.findAll());
+        employeeEntities = new HashSet<>(employeeRepository.findAll());
         Optional<EventIdEntity> eventIdEntity = eventIdRepository.findById(eventId);
         eventIdEntity.ifPresent(idEntity -> employeeEntities.removeAll(idEntity.getEmployeeEntities()));
         log.info("Found {} employees not attending event with id {}", employeeEntities.size(), eventId);
@@ -151,12 +155,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EventDto attendEvent(Set<Long> employeeIds, EventDto eventDto) throws ExecutionException, InterruptedException {
-        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
+        employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
         if (employeeEntities.isEmpty()) {
             log.warn("Employees with ids {} are not found", employeeIds);
             return eventDto;
         }
-        Set<EmployeeEntity> attendingEmployeeEntities = eventIdRepository.findById(eventDto.getId())
+        attendingEmployeeEntities = eventIdRepository.findById(eventDto.getId())
                 .orElseGet(() -> eventIdRepository.save(new EventIdEntity(eventDto.getId(), new HashSet<>())))
                 .getEmployeeEntities();
         employeeEntities.removeAll(attendingEmployeeEntities);
@@ -170,7 +174,11 @@ public class EmployeeServiceImpl implements EmployeeService {
                 LocalTime.parse(eventDto.getEndTime())
         );
         attendingEmployeeEntities.addAll(employeeEntities);
-        loadDataFor(attendingEmployeeEntities);
+        isTimeSlotForEventChanged = false;
+        loadUnavailableTimeSlots();
+        loadEarliestAvailableStartTime();
+        loadLatestAvailableStartTime();
+        loadPublicHolidays();
         findTimeSlotForEvent();
         if (isTimeSlotForEventChanged) {
             attendingEmployeeEntities.removeAll(employeeEntities);
@@ -191,7 +199,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         return eventDto;
     }
 
-    private void loadDataFor(Set<EmployeeEntity> attendingEmployeeEntities) throws ExecutionException, InterruptedException {
+    private void loadUnavailableTimeSlots()
+            throws ExecutionException, InterruptedException {
         Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream()
                 .map(EmployeeEntity::getId)
                 .collect(Collectors.toSet());
@@ -201,17 +210,22 @@ public class EmployeeServiceImpl implements EmployeeService {
                         LocalTime.parse(attendedEvent.getStartTime()),
                         LocalTime.parse(attendedEvent.getEndTime())))
                 .collect(Collectors.toSet());
+    }
+
+    private void loadEarliestAvailableStartTime() {
         earliestAvailableStartTime = attendingEmployeeEntities.stream()
                 .map(EmployeeEntity::getWorkingStartTime)
                 .max(Comparator.naturalOrder())
                 .orElse(LocalTime.parse("09:00:00"));
         log.info("Earliest available starting time for the event is {}", earliestAvailableStartTime);
+    }
+
+    private void loadLatestAvailableStartTime() {
         latestAvailableStartTime = attendingEmployeeEntities.stream()
                 .map(EmployeeEntity::getWorkingEndTime)
                 .min(Comparator.naturalOrder())
                 .orElse(LocalTime.parse("18:00:00"))
                 .minus(Duration.between(timeSlotForEvent.getStartTime(), timeSlotForEvent.getEndTime()));
-        isTimeSlotForEventChanged = false;
         if (latestAvailableStartTime.isBefore(earliestAvailableStartTime)) {
             timeSlotForEvent.setEndTime(timeSlotForEvent.getEndTime()
                     .minus(Duration.between(latestAvailableStartTime, earliestAvailableStartTime)));
@@ -219,6 +233,9 @@ public class EmployeeServiceImpl implements EmployeeService {
             isTimeSlotForEventChanged = true;
         }
         log.info("Latest available starting time for the event is {}", latestAvailableStartTime);
+    }
+
+    private void loadPublicHolidays() {
         Set<String> countryCodes = attendingEmployeeEntities.stream()
                 .map(employeeEntity -> employeeEntity.getOfficeEntity().getCountryEntity().getCode())
                 .collect(Collectors.toSet());
@@ -278,7 +295,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
             return eventDto;
         }
-        Set<EmployeeEntity> attendingEmployeeEntities = eventIdEntity.get().getEmployeeEntities();
+        attendingEmployeeEntities = eventIdEntity.get().getEmployeeEntities();
         if (attendingEmployeeEntities.isEmpty()) {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
             return eventDto;
@@ -289,7 +306,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             log.warn("Requested employees' attendance of the event with id {} is not found", eventDto.getId());
             return eventDto;
         }
-        Set<EmployeeEntity> employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
+        employeeEntities = employeeRepository.findAllByIdIn(employeeIds);
         kafkaProducer.sendAttendanceNotification(
                 false,
                 employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet()),
@@ -308,7 +325,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
             return eventDto;
         }
-        Set<EmployeeEntity> employeeEntities = eventIdEntity.get().getEmployeeEntities();
+        employeeEntities = eventIdEntity.get().getEmployeeEntities();
         if (employeeEntities.isEmpty()) {
             log.warn("Employees' attendance of the event with id {} is not found", eventDto.getId());
             eventIdRepository.deleteById(eventDto.getId());
