@@ -1,4 +1,4 @@
-package com.emansy.employeeservice.swagger;
+package com.emansy.employeeservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

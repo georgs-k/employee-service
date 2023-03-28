@@ -1,4 +1,4 @@
-package com.emansy.employeeservice.kafka;
+package com.emansy.employeeservice.config;
 
 import com.emansy.employeeservice.model.AttendeeIdsDto;
 import com.emansy.employeeservice.model.AttendeesDto;
