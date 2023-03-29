@@ -194,13 +194,12 @@ public class EmployeeServiceImpl implements EmployeeService {
                 employeeEntities.stream().map(employeeMapper::entityToDto).collect(Collectors.toSet()),
                 eventDto
         );
-        log.info("{} employees attendance of the event with id {} is set up",
+        log.info("{} employees' attendance of the event with id {} is set up",
                 employeeEntities.size(), eventDto.getId());
         return eventDto;
     }
 
-    private void loadUnavailableTimeSlots()
-            throws ExecutionException, InterruptedException {
+    private void loadUnavailableTimeSlots() throws ExecutionException, InterruptedException {
         Set<Long> attendingEmployeeIds = attendingEmployeeEntities.stream()
                 .map(EmployeeEntity::getId)
                 .collect(Collectors.toSet());
