@@ -17,9 +17,10 @@ import com.emansy.employeeservice.model.OfficeDto;
 import com.emansy.employeeservice.model.PublicHolidayDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.persistence.EntityManager;
 import java.time.LocalTime;
@@ -44,7 +45,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class EmployeeServiceTest {
 
     @Mock
@@ -434,7 +435,6 @@ public class EmployeeServiceTest {
     void unattendEventTestNegativeNoAttendingEmployees() {
         eventIdEntity.setEmployeeEntities(Collections.emptySet());
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
-        when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
         assertEquals(eventDto, employeeService.unattendEvent(employeeIds, eventDto));
         verify(eventIdRepository, times(1)).findById(anyLong());
         verify(employeeRepository, times(0)).findAllByIdIn(anySet());
@@ -445,7 +445,6 @@ public class EmployeeServiceTest {
     void unattendEventTestNegativeWrongAttendingEmployees() {
         employeeIds = createEmployeeIds(3L, 4L);
         when(eventIdRepository.findById(anyLong())).thenReturn(Optional.of(eventIdEntity));
-        when(employeeRepository.findAllByIdIn(anySet())).thenReturn(employeeEntities);
         assertEquals(eventDto, employeeService.unattendEvent(employeeIds, eventDto));
         verify(eventIdRepository, times(1)).findById(anyLong());
         verify(employeeRepository, times(0)).findAllByIdIn(anySet());
