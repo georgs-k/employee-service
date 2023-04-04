@@ -36,7 +36,7 @@ public class TokenService {
                 .claim("id", userId)
                 .claim("role", String.valueOf(authentication.getAuthorities()))
                 .build();
-        JwtEncoderParameters encoderParameters = JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS512).build(), claims);
+        JwtEncoderParameters encoderParameters = JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims);
         return this.jwtEncoder.encode(encoderParameters).getTokenValue();
     }
 }
