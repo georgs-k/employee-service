@@ -168,12 +168,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             log.warn("Requested employees already attend the event with id: {}", eventDto.getId());
             return eventDto;
         }
-        timeSlotForEvent = new TimeSlot(
-                LocalDate.parse(eventDto.getDate()),
-                LocalTime.parse(eventDto.getStartTime()),
-                LocalTime.parse(eventDto.getEndTime())
-        );
         attendingEmployeeEntities.addAll(employeeEntities);
+        timeSlotForEvent = new TimeSlot(eventDto);
         isTimeSlotForEventChanged = false;
         loadUnavailableTimeSlots();
         loadEarliestAvailableStartTime();
@@ -204,10 +200,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .map(EmployeeEntity::getId)
                 .collect(Collectors.toSet());
         unavailableTimeSlots = findAttendedEventsBetween(attendingEmployeeIds, String.valueOf(LocalDate.now()), "").stream()
-                .map(attendedEvent -> new TimeSlot(
-                        LocalDate.parse(attendedEvent.getDate()),
-                        LocalTime.parse(attendedEvent.getStartTime()),
-                        LocalTime.parse(attendedEvent.getEndTime())))
+                .map(TimeSlot::new)
                 .collect(Collectors.toSet());
     }
 

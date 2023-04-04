@@ -1,13 +1,12 @@
 package com.emansy.employeeservice.business.service.impl;
 
-import lombok.AllArgsConstructor;
+import com.emansy.employeeservice.model.EventDto;
 import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Data
-@AllArgsConstructor
 class TimeSlot {
 
     private LocalDate date;
@@ -15,4 +14,10 @@ class TimeSlot {
     private LocalTime startTime;
 
     private LocalTime endTime;
+
+    public TimeSlot(EventDto eventDto) {
+        date = LocalDate.parse(eventDto.getDate());
+        startTime = LocalTime.parse(eventDto.getStartTime());
+        endTime = LocalTime.parse(eventDto.getEndTime());
+    }
 }
