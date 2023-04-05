@@ -5,8 +5,6 @@ import com.emansy.employeeservice.model.AttendeeIdsDto;
 import com.emansy.employeeservice.model.EmployeesDto;
 import com.emansy.employeeservice.model.EventDto;
 import com.emansy.employeeservice.model.EventIdDto;
-import com.emansy.employeeservice.model.EventIdsWithinDatesDto;
-import com.emansy.employeeservice.model.EventsDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -28,16 +25,16 @@ public class KafkaConsumer {
     private final EmployeeService employeeService;
 
     // temporary - emulation of event-service:
-    @KafkaListener(topics = "events-request", groupId = "event-group")
-    @SendTo
-    public Message<EventsDto> handleEventRequestStub(ConsumerRecord<String, EventIdsWithinDatesDto> consumerRecord) {
-        Set<Long> eventIds = consumerRecord.value().getIds();
-        EventsDto payload = new EventsDto(eventIds.stream()
-                .map(eventId -> new EventDto(
-                        eventId, "Event", "Details", "2023-04-14", "10:00:00", "11:00:00"))
-                .collect(Collectors.toSet()));
-        return MessageBuilder.withPayload(payload).build();
-    }
+//    @KafkaListener(topics = "events-request", groupId = "event-group")
+//    @SendTo
+//    public Message<EventsDto> handleEventRequestStub(ConsumerRecord<String, EventIdsWithinDatesDto> consumerRecord) {
+//        Set<Long> eventIds = consumerRecord.value().getIds();
+//        EventsDto payload = new EventsDto(eventIds.stream()
+//                .map(eventId -> new EventDto(
+//                        eventId, "Event", "Details", "2023-04-14", "10:00:00", "11:00:00"))
+//                .collect(Collectors.toSet()));
+//        return MessageBuilder.withPayload(payload).build();
+//    }
     // temporary end
 
     @KafkaListener(topics = "employees-request", groupId = "employee-group")
@@ -54,10 +51,11 @@ public class KafkaConsumer {
 
     @KafkaListener(topics = "attendance-request", groupId = "employee-group")
     @SendTo
-    public Message<EventDto> handleAttendanceRequest(AttendeeIdsDto attendeeIdsDto) throws ExecutionException, InterruptedException {
-        Set<Long> employeeIds = attendeeIdsDto.getEmployeeIds();
-        EventDto eventDto = attendeeIdsDto.getEventDto();
-        if (attendeeIdsDto.getWhetherToAttendOrToUnattend()) {
+    public Message<EventDto> handleAttendanceRequest(ConsumerRecord<String, AttendeeIdsDto> consumerRecord)
+            throws ExecutionException, InterruptedException {
+        Set<Long> employeeIds = consumerRecord.value().getEmployeeIds();
+        EventDto eventDto = consumerRecord.value().getEventDto();
+        if (consumerRecord.value().getWhetherToAttendOrToUnattend()) {
             log.info("Request for employees' with ids {} attendance of event with id {} is received",
                     employeeIds, eventDto.getId());
             return MessageBuilder.withPayload(employeeService.attendEvent(employeeIds, eventDto)).build();
