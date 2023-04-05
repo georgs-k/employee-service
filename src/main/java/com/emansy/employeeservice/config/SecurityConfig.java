@@ -1,6 +1,6 @@
 package com.emansy.employeeservice.config;
 
-import com.emansy.employeeservice.business.service.JpaUserDetailsService;
+import com.emansy.employeeservice.business.service.UserService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -32,9 +32,9 @@ public class SecurityConfig {
     private String jwtKey;
 
     @Bean
-    public AuthenticationManager authenticationManager(JpaUserDetailsService jpaUserDetailsService) {
+    public AuthenticationManager authenticationManager(UserService userService) {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(jpaUserDetailsService);
+        authProvider.setUserDetailsService(userService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return new ProviderManager(authProvider);
     }
