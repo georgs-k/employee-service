@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,6 +33,7 @@ import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -54,7 +57,12 @@ public class EmployeeController {
             @ApiResponse(code = 401, message = "The request requires user authentication"),
             @ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
             @ApiResponse(code = 500, message = "Server error")})
-    public ResponseEntity<List<EmployeeDto>> findAllEmployees() {
+    public ResponseEntity<List<EmployeeDto>> findAllEmployees(@AuthenticationPrincipal Jwt token) {
+        Map<String, Object> claims = token.getClaims();
+        if (!claims.get("role").equals("[ADMIN]")) {
+            log.warn("Access denied. Requested resource is forbidden");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         log.info("Retrieve list of all employees");
         List<EmployeeDto> employees = employeeService.findAll();
         log.debug("Size of employee list is {}", employees.size());
@@ -74,7 +82,14 @@ public class EmployeeController {
     public ResponseEntity<EmployeeDto> findEmployeeById(
             @ApiParam(value = "Id of an employee", required = true)
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
-            Long id) {
+            Long id,
+            @AuthenticationPrincipal
+            Jwt token) {
+        Map<String, Object> claims = token.getClaims();
+        if (!claims.get("role").equals("[ADMIN]") && !claims.get("id").equals(id)) {
+            log.warn("Access denied. Requested resource is forbidden");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         log.info("Find an employee by id: {}", id);
         Optional<EmployeeDto> employee = employeeService.findById(id);
         if (!employee.isPresent()) {
@@ -97,7 +112,12 @@ public class EmployeeController {
             @ApiResponse(code = 404, message = "The server has not found anything matching the Request-URI"),
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<EmployeeDto> saveEmployee(
-            @Valid @RequestBody EmployeeDto employeeDto, BindingResult bindingResult) {
+            @Valid @RequestBody EmployeeDto employeeDto, BindingResult bindingResult, @AuthenticationPrincipal Jwt token) {
+        Map<String, Object> claims = token.getClaims();
+        if (!claims.get("role").equals("[ADMIN]")) {
+            log.warn("Access denied. Requested resource is forbidden");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         log.info("Create and save a new employee by passing {}", employeeDto);
         if (bindingResult.hasErrors()) {
             log.error("New employee is not created: error {}", bindingResult);
@@ -120,7 +140,12 @@ public class EmployeeController {
             @ApiResponse(code = 404, message = "The server has not found anything matching the Request-URI"),
             @ApiResponse(code = 500, message = "Server error")})
     public ResponseEntity<EmployeeDto> updateEmployee(
-            @Valid @RequestBody EmployeeDto employeeDto, BindingResult bindingResult) {
+            @Valid @RequestBody EmployeeDto employeeDto, BindingResult bindingResult, @AuthenticationPrincipal Jwt token) {
+        Map<String, Object> claims = token.getClaims();
+        if (!claims.get("role").equals("[ADMIN]")) {
+            log.warn("Access denied. Requested resource is forbidden");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         log.info("Update an existing employee by passing {}", employeeDto);
         if (bindingResult.hasErrors()) {
             log.error("Employee is not updated: error {}", bindingResult);
@@ -148,7 +173,14 @@ public class EmployeeController {
     public ResponseEntity<Void> deleteEmployeeById(
             @ApiParam(value = "Id of an employee", required = true)
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
-            Long id) {
+            Long id,
+            @AuthenticationPrincipal
+            Jwt token) {
+        Map<String, Object> claims = token.getClaims();
+        if (!claims.get("role").equals("[ADMIN]")) {
+            log.warn("Access denied. Requested resource is forbidden");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         log.info("Delete an employee by id: {}", id);
         if (!employeeService.existsById(id)) {
             log.warn("Employee for delete with id {} is not found", id);
@@ -177,7 +209,14 @@ public class EmployeeController {
             String fromDate,
             @ApiParam(value = "Latest date of an event", required = true)
             @PathVariable @NotBlank @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Required date format: yyyy-MM-dd")
-            String thruDate) throws ExecutionException, InterruptedException {
+            String thruDate,
+            @AuthenticationPrincipal
+            Jwt token) throws ExecutionException, InterruptedException {
+        Map<String, Object> claims = token.getClaims();
+        if (!claims.get("role").equals("[ADMIN]") && !claims.get("id").equals(id)) {
+            log.warn("Access denied. Requested resource is forbidden");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         log.info("Find events attended by the employee with id {}, scheduled between {} and {}", id, fromDate, thruDate);
         if (!employeeService.existsById(id)) {
             log.warn("Employee with id {} is not found", id);
@@ -204,7 +243,14 @@ public class EmployeeController {
             @PathVariable @NotNull @Positive(message = "a positive integer number is required")
             Long id,
             @Valid @RequestBody EventDto eventDto,
-            BindingResult bindingResult) {
+            BindingResult bindingResult,
+            @AuthenticationPrincipal
+            Jwt token) {
+        Map<String, Object> claims = token.getClaims();
+        if (!claims.get("role").equals("[ADMIN]") && !claims.get("id").equals(id)) {
+            log.warn("Access denied. Requested resource is forbidden");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         log.info("Cancel employee's with id {} attendance of event with id {} (if exists)", id, eventDto.getId());
         if (bindingResult.hasErrors()) {
             log.error("Attendance not cancelled: error {}", bindingResult);
