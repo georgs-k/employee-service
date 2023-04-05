@@ -51,10 +51,11 @@ public class KafkaConsumer {
 
     @KafkaListener(topics = "attendance-request", groupId = "employee-group")
     @SendTo
-    public Message<EventDto> handleAttendanceRequest(AttendeeIdsDto attendeeIdsDto) throws ExecutionException, InterruptedException {
-        Set<Long> employeeIds = attendeeIdsDto.getEmployeeIds();
-        EventDto eventDto = attendeeIdsDto.getEventDto();
-        if (attendeeIdsDto.getWhetherToAttendOrToUnattend()) {
+    public Message<EventDto> handleAttendanceRequest(ConsumerRecord<String, AttendeeIdsDto> consumerRecord)
+            throws ExecutionException, InterruptedException {
+        Set<Long> employeeIds = consumerRecord.value().getEmployeeIds();
+        EventDto eventDto = consumerRecord.value().getEventDto();
+        if (consumerRecord.value().getWhetherToAttendOrToUnattend()) {
             log.info("Request for employees' with ids {} attendance of event with id {} is received",
                     employeeIds, eventDto.getId());
             return MessageBuilder.withPayload(employeeService.attendEvent(employeeIds, eventDto)).build();

@@ -26,7 +26,7 @@ public class KafkaConfig {
         ConcurrentMessageListenerContainer<String, EventDto>
                 replyContainer = listenerContainerFactory.createContainer("attendance-response");
         replyContainer.getContainerProperties().setMissingTopicsFatal(false);
-        replyContainer.getContainerProperties().setGroupId("employee-group");
+        replyContainer.getContainerProperties().setGroupId("event-group");
         return new ReplyingKafkaTemplate<>(producerFactory, replyContainer);
     }
 
@@ -48,7 +48,7 @@ public class KafkaConfig {
         ConcurrentMessageListenerContainer<String, EventsDto>
                 replyContainer = listenerContainerFactory.createContainer("events-response");
         replyContainer.getContainerProperties().setMissingTopicsFatal(false);
-        replyContainer.getContainerProperties().setGroupId("event-group");
+        replyContainer.getContainerProperties().setGroupId("employee-group");
         return new ReplyingKafkaTemplate<>(producerFactory, replyContainer);
     }
 
