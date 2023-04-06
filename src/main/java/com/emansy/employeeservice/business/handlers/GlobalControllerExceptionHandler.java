@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,5 +34,12 @@ public class GlobalControllerExceptionHandler {
         ErrorModel errorModel = new ErrorModel(LocalDateTime.now(), 401, "Unauthorized",
                 ex.getMessage(), request.getRequestURI());
         return new ResponseEntity<>(errorModel, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(HttpClientErrorException.class)
+    protected ResponseEntity<ErrorModel> handle(HttpClientErrorException ex, HttpServletRequest request) {
+        ErrorModel errorModel = new ErrorModel(LocalDateTime.now(), ex.getRawStatusCode(), ex.getStatusText(),
+                ex.getMessage(), request.getRequestURI());
+        return new ResponseEntity<>(errorModel, ex.getStatusCode());
     }
 }

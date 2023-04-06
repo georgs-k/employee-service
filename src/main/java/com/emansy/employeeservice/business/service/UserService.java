@@ -1,6 +1,5 @@
 package com.emansy.employeeservice.business.service;
 
-import com.emansy.employeeservice.model.ChangePasswordDto;
 import com.emansy.employeeservice.model.UserDto;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,13 +16,11 @@ public interface UserService extends UserDetailsService {
 
     Optional<UserDto> findById(Long id);
 
-    UserDto save(UserDto userDto);
+    void create(UserDto userDto);
 
-    UserDto update(UserDto userDto);
+    void delete(UserDto userDto);
 
-    void deleteById(Long id);
+    void changeRole(UserDto userDto);
 
-    boolean existsById(Long id);
-
-    void changePassword(ChangePasswordDto changePasswordDto);
+    void changePassword(UserDto userDto);
 }
