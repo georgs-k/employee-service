@@ -192,7 +192,7 @@ public class UserController {
     public ResponseEntity<Void> changePassword(
             @Valid @RequestBody UserDto userDto, BindingResult bindingResult, @AuthenticationPrincipal Jwt token) {
         Map<String, Object> claims = token.getClaims();
-        if (!claims.get("role").equals("[USER]") || !claims.get("id").equals(userDto.getId())) {
+        if (!claims.get("id").equals(userDto.getId())) {
             log.warn("Access denied. Requested resource is forbidden");
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -201,7 +201,7 @@ public class UserController {
             log.error("User password is not changed: error {}", bindingResult);
             return ResponseEntity.badRequest().build();
         }
-        userService.changeRole(userDto);
+        userService.changePassword(userDto);
         log.debug("User's password is changed");
         return ResponseEntity.ok().build();
     }

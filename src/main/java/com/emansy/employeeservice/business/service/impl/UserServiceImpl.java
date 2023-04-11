@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
         if (!userEntityToDeleteOptional.isPresent()) {
             log.error("Exception {} is thrown. User is not deleted: user with id {} and email {} is not found",
                     HttpStatus.NOT_FOUND, id, email);
-            throw new HttpClientErrorException(HttpStatus.NOT_FOUND, "User with id " + id + " and email " + email + "is not found");
+            throw new HttpClientErrorException(HttpStatus.NOT_FOUND, "User with id " + id + " and email " + email + " is not found");
         }
         UserEntity userEntityToDelete = userEntityToDeleteOptional.get();
         userRepository.delete(userEntityToDelete);
@@ -88,7 +88,7 @@ public class UserServiceImpl implements UserService {
         if (!userEntityToUpdateOptional.isPresent()) {
             log.error("Exception {} is thrown. User role is not changed: user with id {} and email {} is not found",
                     HttpStatus.NOT_FOUND, id, email);
-            throw new HttpClientErrorException(HttpStatus.NOT_FOUND, "User with id " + id + " and email " + email + "is not found");
+            throw new HttpClientErrorException(HttpStatus.NOT_FOUND, "User with id " + id + " and email " + email + " is not found");
         }
         UserEntity userEntityToUpdate = userEntityToUpdateOptional.get();
         userEntityToUpdate.setRole(userDto.getRole());
@@ -104,7 +104,7 @@ public class UserServiceImpl implements UserService {
         if (!userEntityToUpdateOptional.isPresent()) {
             log.error("Exception {} is thrown. Password is not changed: user with id {} and email {} is not found",
                     HttpStatus.NOT_FOUND, id, email);
-            throw new HttpClientErrorException(HttpStatus.NOT_FOUND, "User with id " + id + " and email " + email + "is not found");
+            throw new HttpClientErrorException(HttpStatus.NOT_FOUND, "User with id " + id + " and email " + email + " is not found");
         }
         UserEntity userEntityToUpdate = userEntityToUpdateOptional.get();
         userEntityToUpdate.setPassword(passwordEncoder.encode(userDto.getPassword()));

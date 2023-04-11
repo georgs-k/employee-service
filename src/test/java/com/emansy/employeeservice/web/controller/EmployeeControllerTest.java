@@ -43,6 +43,12 @@ public class EmployeeControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
+    private AuthController authController;
+
+    @MockBean
+    private UserController userController;
+
+    @MockBean
     private EmployeeService service;
 
     @Test
