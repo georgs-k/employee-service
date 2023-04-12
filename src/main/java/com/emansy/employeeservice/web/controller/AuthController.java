@@ -39,7 +39,7 @@ public class AuthController {
             response = String.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Success"),
-            @ApiResponse(code = 400, message = "Missing or invalid email or password"),
+            @ApiResponse(code = 400, message = "Missing or bad email or password"),
             @ApiResponse(code = 401, message = "Authentication failed"),
             @ApiResponse(code = 404, message = "The server has not found anything matching the Request-URI"),
             @ApiResponse(code = 500, message = "Server error")})

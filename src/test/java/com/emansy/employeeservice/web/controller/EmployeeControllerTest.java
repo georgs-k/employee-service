@@ -62,7 +62,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({EmployeeController.class, AuthController.class})
+@WebMvcTest
 @Import({SecurityConfig.class,
         TokenService.class,
         UserServiceImpl.class,
