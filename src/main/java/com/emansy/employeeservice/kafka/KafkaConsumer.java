@@ -24,19 +24,6 @@ public class KafkaConsumer {
 
     private final EmployeeService employeeService;
 
-    // temporary - emulation of event-service:
-//    @KafkaListener(topics = "events-request", groupId = "event-group")
-//    @SendTo
-//    public Message<EventsDto> handleEventRequestStub(ConsumerRecord<String, EventIdsWithinDatesDto> consumerRecord) {
-//        Set<Long> eventIds = consumerRecord.value().getIds();
-//        EventsDto payload = new EventsDto(eventIds.stream()
-//                .map(eventId -> new EventDto(
-//                        eventId, "Event", "Details", "2023-04-14", "10:00:00", "11:00:00"))
-//                .collect(Collectors.toSet()));
-//        return MessageBuilder.withPayload(payload).build();
-//    }
-    // temporary end
-
     @KafkaListener(topics = "employees-request", groupId = "employee-group")
     @SendTo
     public Message<EmployeesDto> handleEmployeesRequest(ConsumerRecord<String, EventIdDto> consumerRecord) {
