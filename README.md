@@ -6,4 +6,4 @@ This is a training project that consists of three microservices: employee-servic
 Event Management System is designed for managing employee data for an international company, and for creating and managing online events for the employees, based on their schedules, working times and public holidays in corresponding countries. The system subscribes employees to events, or reschedules the events to nearest available timeslots that suit all invited employees.
 Here is a draft outline of service methods and their interactions:
 
-![Event Management System, service methods](https://user-images.githubusercontent.com/108323637/232480104-ecffcaac-eeee-4ab4-b755-8894b5d7fe1b.png)
+![Event Management System - service methods](https://user-images.githubusercontent.com/108323637/232483150-5207168f-3915-4ddf-af4f-2e571f03b89c.png)
